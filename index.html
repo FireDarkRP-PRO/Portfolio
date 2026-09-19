@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top:#cfe4f7;
+    --bg-bottom:#eef6fb;
+    --bar-bg:linear-gradient(180deg,#ffffff,#e7eef5);
+    --bar-border:#c9d7e3;
+    --btn-bg:#ffffff;
+    --btn-border:#c3d2df;
+    --btn-shadow:rgba(70,100,130,0.25);
+    --text:#2c3e50;
+    --text-soft:#5b7185;
+    --card-title:#31465b;
+    --modal-bg:#ffffff;
+    --modal-text:#2c3e50;
+    --overlay:rgba(20,30,45,0.55);
+  }
+  [data-theme="dark"]{
+    --bg-top:#161a24;
+    --bg-bottom:#0d0f16;
+    --bar-bg:linear-gradient(180deg,#2a3040,#1c202b);
+    --bar-border:#3a4152;
+    --btn-bg:#2f3646;
+    --btn-border:#454e63;
+    --btn-shadow:rgba(0,0,0,0.5);
+    --text:#e8edf4;
+    --text-soft:#9aa7b8;
+    --card-title:#e8edf4;
+    --modal-bg:#232838;
+    --modal-text:#e8edf4;
+    --overlay:rgba(0,0,0,0.7);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Nunito', sans-serif;
+    background:linear-gradient(160deg,var(--bg-top),var(--bg-bottom));
+    min-height:100vh;
+    color:var(--text);
+    transition:background 0.4s ease, color 0.4s ease;
+  }
+  h1,h2,h3,.brand{font-family:'Baloo 2', sans-serif;}
+
+  /* ---------- Barre du haut ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:10px 18px;
+    background:var(--bar-bg);
+    border-bottom:1px solid var(--bar-border);
+    box-shadow:0 4px 14px rgba(30,50,70,0.12);
+  }
+  .topbar-group{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .icon-btn{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    border:1px solid var(--btn-border);
+    background:var(--btn-bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow:0 3px 6px var(--btn-shadow), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .icon-btn:hover{ transform:translateY(-2px); }
+  .icon-btn:active{ transform:translateY(0px) scale(0.95); }
+  .icon-btn svg{ width:24px; height:24px; }
+  [data-theme="dark"] .icon-btn svg{ stroke:#e8edf4; }
+  .icon-btn svg{ stroke:#3c556e; }
+
+  .brand{
+    font-size:1.05rem;
+    font-weight:700;
+    color:var(--text);
+    letter-spacing:0.3px;
+    white-space:nowrap;
+  }
+  .brand span{ color:#4a90d9; }
+
+  /* ---------- Grille de projets ---------- */
+  main{
+    padding:34px 26px 60px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  .grid{
+    display:grid;
+    gap:26px;
+    grid-template-columns:repeat(var(--cols,4), 1fr);
+    transition:gap 0.3s ease;
+  }
+  .tile{
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    font-family:inherit;
+    color:inherit;
+  }
+  .tile-face{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:26%;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 8px 18px rgba(20,35,55,0.28), inset 0 2px 3px rgba(255,255,255,0.35);
+    transition:transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .tile:hover .tile-face{
+    transform:translateY(-4px) scale(1.03);
+    box-shadow:0 14px 24px rgba(20,35,55,0.34), inset 0 2px 3px rgba(255,255,255,0.4);
+  }
+  .tile-face img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  .tile-face::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 45%);
+    pointer-events:none;
+  }
+  .tile-title{
+    font-family:'Baloo 2', sans-serif;
+    font-size:0.92rem;
+    font-weight:600;
+    color:var(--card-title);
+    text-align:center;
+    line-height:1.2;
+  }
+
+  /* densité de grille */
+  main[data-density="grand"]  .grid{ --cols:3; }
+  main[data-density="moyen"]  .grid{ --cols:4; }
+  main[data-density="petit"]  .grid{ --cols:6; }
+
+  @media (max-width:900px){
+    main[data-density="grand"]  .grid{ --cols:2; }
+    main[data-density="moyen"]  .grid{ --cols:3; }
+    main[data-density="petit"]  .grid{ --cols:4; }
+  }
+  @media (max-width:560px){
+    main .grid{ --cols:2 !important; }
+    .brand{ display:none; }
+  }
+
+  /* ---------- Modales ---------- */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:var(--overlay);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:100;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.25s ease;
+  }
+  .overlay.active{ opacity:1; pointer-events:auto; }
+
+  .modal{
+    background:var(--modal-bg);
+    color:var(--modal-text);
+    border-radius:20px;
+    max-width:560px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+    transform:translateY(18px) scale(0.97);
+    transition:transform 0.25s ease;
+  }
+  .overlay.active .modal{ transform:translateY(0) scale(1); }
+
+  .profile-modal{ max-width:640px; }
+  .modal-image{
+    width:100%;
+    aspect-ratio:16/9;
+    object-fit:cover;
+    border-radius:20px 20px 0 0;
+  }
+  .modal-body{ padding:24px 26px 28px; }
+  .modal-body h2{ margin:0 0 6px; font-size:1.4rem; }
+  .modal-tag{
+    display:inline-block;
+    font-size:0.75rem;
+    font-weight:700;
+    color:#4a90d9;
+    background:rgba(74,144,217,0.12);
+    padding:4px 10px;
+    border-radius:20px;
+    margin-bottom:12px;
+  }
+  .modal-body p{ line-height:1.55; color:var(--text-soft); margin:0 0 20px; }
+  .modal-actions{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
+  .btn-primary{
+    background:#4a90d9;
+    color:#fff;
+    border:none;
+    padding:11px 22px;
+    border-radius:12px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:600;
+    font-size:0.95rem;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:background 0.15s ease, transform 0.15s ease;
+  }
+  .btn-primary:hover{ background:#3d7cc0; transform:translateY(-1px); }
+  .btn-close{
+    background:none;
+    border:none;
+    color:var(--text-soft);
+    font-size:0.9rem;
+    cursor:pointer;
+    font-family:'Nunito', sans-serif;
+  }
+
+  /* Fiche info perso */
+  .profile-modal .modal-body{ text-align:center; padding-top:34px; }
+  .profile-avatar{
+    width:96px; height:96px;
+    border-radius:50%;
+    margin:0 auto 14px;
+    background:linear-gradient(160deg,#8fc7f0,#4a90d9);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 16px rgba(74,144,217,0.4);
+  }
+  .profile-avatar svg{ width:48px; height:48px; stroke:#fff; }
+  .profile-modal h2{ margin-bottom:2px; }
+  .profile-role{ color:#4a90d9; font-weight:700; font-size:0.9rem; margin-bottom:16px; }
+  .profile-bio{ text-align:left; margin-bottom:18px; }
+  .profile-skills{
+    margin-bottom:22px;
+  }
+  .skill-chip{
+    background:rgba(74,144,217,0.12);
+    color:#4a90d9;
+    font-size:0.78rem;
+    font-weight:700;
+    padding:6px 12px;
+    border-radius:20px;
+  }
+  .profile-links{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .profile-links a{
+    color:#4a90d9;
+    text-decoration:none;
+    font-weight:700;
+    font-size:0.88rem;
+    border:1px solid rgba(74,144,217,0.35);
+    padding:8px 16px;
+    border-radius:12px;
+    transition:background 0.15s ease;
+  }
+  .skills-category{ text-align:left; margin-bottom:14px; }
+  .skills-category:last-child{ margin-bottom:0; }
+  .skills-category-label{
+    font-size:0.78rem;
+    font-weight:700;
+    color:var(--text-soft);
+    margin-bottom:6px;
+  }
+  .skills-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .profile-links a:hover{ background:rgba(74,144,217,0.1); }
+  .profile-links .contact-text{
+    color:var(--text-soft);
+    font-size:0.85rem;
+    font-weight:600;
+    padding:8px 4px;
+  }
+
+  footer{
+    text-align:center;
+    padding:20px;
+    color:var(--text-soft);
+    font-size:0.8rem;
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<div class="topbar">
+  <div class="topbar-group">
+    <!-- Soleil : mode nuit / jour -->
+    <button class="icon-btn" id="theme-toggle" title="Mode nuit / jour" aria-label="Changer le mode d'affichage">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </button>
+    <!-- Grille plus grande (moins de projets par ligne) -->
+    <button class="icon-btn" id="size-up" title="Agrandir les projets" aria-label="Agrandir les vignettes">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="13" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="4" y="13" width="7" height="7" rx="1.5"></rect>
+        <rect x="13" y="13" width="7" height="7" rx="1.5"></rect>
+      </svg>
+    </button>
+    <!-- Grille plus petite (plus de projets par ligne) -->
+    <button class="icon-btn" id="size-down" title="Voir plus de projets à la fois" aria-label="Réduire les vignettes">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="4" height="4" rx="1"></rect>
+        <rect x="10" y="3" width="4" height="4" rx="1"></rect>
+        <rect x="17" y="3" width="4" height="4" rx="1"></rect>
+        <rect x="3" y="10" width="4" height="4" rx="1"></rect>
+        <rect x="10" y="10" width="4" height="4" rx="1"></rect>
+        <rect x="17" y="10" width="4" height="4" rx="1"></rect>
+        <rect x="3" y="17" width="4" height="4" rx="1"></rect>
+        <rect x="10" y="17" width="4" height="4" rx="1"></rect>
+        <rect x="17" y="17" width="4" height="4" rx="1"></rect>
+      </svg>
+    </button>
+  </div>
+
+  <div class="brand">Mon <span>Portfolio</span></div>
+
+  <div class="topbar-group">
+    <!-- Visage : infos personnelles (email + téléphone + CV s'y trouvent désormais) -->
+    <button class="icon-btn" id="profile-btn" title="Mes informations" aria-label="Voir mes informations personnelles">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<main data-density="moyen">
+  <div class="grid" id="project-grid"></div>
+</main>
+
+<footer>Cliquez sur un projet pour en savoir plus.</footer>
+
+<!-- Modale détail projet -->
+<div class="overlay" id="project-overlay">
+  <div class="modal" id="project-modal">
+    <img class="modal-image" id="modal-image" src="" alt="">
+    <div class="modal-body">
+      <span class="modal-tag" id="modal-tag"></span>
+      <h2 id="modal-title"></h2>
+      <p id="modal-desc"></p>
+      <div class="modal-actions">
+        <button class="btn-close" data-close>Fermer</button>
+        <a class="btn-primary" id="modal-link" href="#" target="_blank" rel="noopener">
+          Voir plus
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 17 17 7"></path><path d="M7 7h10v10"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale infos personnelles -->
+<div class="overlay" id="profile-overlay">
+  <div class="modal profile-modal">
+    <div class="modal-body">
+      <div class="profile-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path>
+        </svg>
+      </div>
+      <h2 id="profile-name"></h2>
+      <div class="profile-role" id="profile-role"></div>
+      <p class="profile-bio" id="profile-bio"></p>
+      <div class="profile-skills" id="profile-skills"></div>
+      <div class="profile-links" id="profile-contact"></div>
+      <div style="margin-top:22px;">
+        <button class="btn-close" data-close>Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   1) VOS PROJETS — modifiez / ajoutez des entrées ici
+   ========================================================= */
+const projects = [
+  {
+    title: "Starter à l'aveugle",
+    tag: "Site web",
+    color1: "#f5a623", color2: "#f76b1c",
+    image: "https://pokeflip.com/cdn/shop/articles/The_Phenomenal_Firepower_of_Charizard_-_The_Ultimate_Pokemon.jpg",
+    description: "Starter à l’aveugle est un jeu à deux joueurs où chacun construit une équipe de 6 Pokémon, sans choisir directement les siens. À chaque manche, un joueur voit 3 Pokémon et doit les présenter à son adversaire selon une règle établi par les joueurs (catégorie Pokédex, groupe d’œuf, apparence, etc.) et celui-ci en choisi un puis on inverse. Quand les deux équipes sont prête, a l'aide de pokémon Shodown, les joueurs build leurs pokémons et s'affronte en 1v1 ou 2v2 et que le meilleur gagne.",
+    link: "https://firedarkrp-pro.github.io/Starter-l-aveugle/main/"
+  },
+];
+
+/* =========================================================
+   2) Vos informations personnelles (fiche accessible via l'icône visage)
+   ========================================================= */
+const profile = {
+  name: "Johnny Granger",
+  role: "Recherche un stage de développeur informatique — à partir du 22 mars, 14 à 16 semaines",
+  bio: "Étudiant en développement informatique, je conçois aussi bien des sites web que des applications, avec une attention particulière portée à la gestion de projet, au travail en équipe et à la qualité du code.",
+  age: "20 ans",
+  location: "Chemazé (53200)",
+  phone: "07 80 04 05 80",
+  email: "johnny.granger.pro@gmail.com",
+  skills: {
+    "Langages de programmation": ["Java", "Python", "C", "Bash", "Kotlin", "Robotframework", "Prompt engineering", "Vibe coding"],
+    "Web": ["HTML & CSS", "PHP & Symfony", "JavaScript", "Express.js", "Node.js", "jQuery", "Bootstrap"],
+    "Bases de données": ["Conception (MCD, MLD, GDF)", "SQL & PL/SQL", "MongoDB", "SQLite", "Diagramme UML"],
+    "Interfaces graphiques": ["JavaFX", "Figma", "Canva"],
+    "IDE": ["IntelliJ IDEA", "VSCode", "Eclipse", "EduPython", "Notepad++"],
+    "Collaboration": ["Git & GitHub", "Git Flow", "Jira"],
+    "Gestion de projet": ["Cahier des charges", "GANTT & PERT", "Méthode Agile"],
+    "Autre": ["Droit du numérique", "Gestion d'entreprise", "Communication professionnelle"]
+  },
+  cv: "CV_Johnny_Granger.pdf"
+};
+
+function renderProfile(){
+  document.getElementById('profile-name').textContent = profile.name;
+  document.getElementById('profile-role').textContent = profile.role;
+  document.getElementById('profile-bio').textContent = profile.bio;
+
+  document.getElementById('profile-skills').innerHTML =
+    Object.entries(profile.skills).map(([category, list]) => `
+      <div class="skills-category">
+        <div class="skills-category-label">${category}</div>
+        <div class="skills-chips">
+          ${list.map(s => `<span class="skill-chip">${s}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+
+  document.getElementById('profile-contact').innerHTML = `
+    <a href="mailto:${profile.email}">${profile.email}</a>
+    <a href="tel:${profile.phone.replace(/\s+/g, '')}">${profile.phone}</a>
+    <span class="contact-text">${profile.location} · ${profile.age}</span>
+    <a href="${profile.cv}" download>Télécharger mon CV</a>
+  `;
+}
+renderProfile();
+
+/* =========================================================
+   Génération de la grille
+   ========================================================= */
+const grid = document.getElementById('project-grid');
+
+function tileVisual(p){
+  if(p.image){
+    return `<img src="${p.image}" alt="${p.title}">`;
+  }
+  return `<div style="width:100%;height:100%;background:linear-gradient(160deg, ${p.color1}, ${p.color2});"></div>`;
+}
+
+projects.forEach((p, i) => {
+  const tile = document.createElement('button');
+  tile.className = 'tile';
+  tile.innerHTML = `
+    <div class="tile-face">${tileVisual(p)}</div>
+    <div class="tile-title">${p.title}</div>
+  `;
+  tile.addEventListener('click', () => openProject(i));
+  grid.appendChild(tile);
+});
+
+/* =========================================================
+   Modale projet
+   ========================================================= */
+const projectOverlay = document.getElementById('project-overlay');
+const modalImage = document.getElementById('modal-image');
+const modalTag = document.getElementById('modal-tag');
+const modalTitle = document.getElementById('modal-title');
+const modalDesc = document.getElementById('modal-desc');
+const modalLink = document.getElementById('modal-link');
+
+function openProject(i){
+  const p = projects[i];
+  if(p.image){
+    modalImage.src = p.image;
+    modalImage.style.display = 'block';
+  } else {
+    modalImage.style.display = 'none';
+  }
+  modalTag.textContent = p.tag;
+  modalTitle.textContent = p.title;
+  modalDesc.textContent = p.description;
+  modalLink.href = p.link;
+  projectOverlay.classList.add('active');
+}
+
+/* =========================================================
+   Fermeture des modales
+   ========================================================= */
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
+  });
+});
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if(e.target === overlay) overlay.classList.remove('active');
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
+});
+
+/* =========================================================
+   Bouton "visage" -> infos personnelles
+   ========================================================= */
+document.getElementById('profile-btn').addEventListener('click', () => {
+  document.getElementById('profile-overlay').classList.add('active');
+});
+
+
+/* =========================================================
+   Mode nuit (soleil) — mémorisé dans le navigateur
+   ========================================================= */
+const sunPath = `<circle cx="12" cy="12" r="4"></circle>
+  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>`;
+const moonPath = `<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>`;
+
+const themeToggle = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+const body = document.body;
+
+function applyTheme(theme){
+  body.setAttribute('data-theme', theme);
+  themeIcon.innerHTML = theme === 'dark' ? moonPath : sunPath;
+  localStorage.setItem('portfolio-theme', theme);
+}
+applyTheme(localStorage.getItem('portfolio-theme') || 'light');
+
+themeToggle.addEventListener('click', () => {
+  const next = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+});
+
+/* =========================================================
+   Taille des vignettes (les deux boutons carrés)
+   ========================================================= */
+const densities = ['grand', 'moyen', 'petit'];
+const mainEl = document.querySelector('main');
+
+function setDensity(d){
+  mainEl.setAttribute('data-density', d);
+  localStorage.setItem('portfolio-density', d);
+}
+setDensity(localStorage.getItem('portfolio-density') || 'moyen');
+
+document.getElementById('size-up').addEventListener('click', () => {
+  const idx = densities.indexOf(mainEl.getAttribute('data-density'));
+  setDensity(densities[Math.max(idx - 1, 0)]);
+});
+document.getElementById('size-down').addEventListener('click', () => {
+  const idx = densities.indexOf(mainEl.getAttribute('data-density'));
+  setDensity(densities[Math.min(idx + 1, densities.length - 1)]);
+});
+</script>
+</body>
+</html>
