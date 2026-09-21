@@ -21,6 +21,8 @@
     --modal-bg:#ffffff;
     --modal-text:#2c3e50;
     --overlay:rgba(20,30,45,0.55);
+    --tile-empty-bg:rgba(255,255,255,0.45);
+    --tile-empty-border:rgba(120,145,170,0.45);
   }
   [data-theme="dark"]{
     --bg-top:#161a24;
@@ -36,6 +38,8 @@
     --modal-bg:#232838;
     --modal-text:#e8edf4;
     --overlay:rgba(0,0,0,0.7);
+    --tile-empty-bg:rgba(255,255,255,0.04);
+    --tile-empty-border:rgba(255,255,255,0.14);
   }
 
   *{box-sizing:border-box;}
@@ -154,6 +158,19 @@
     line-height:1.2;
   }
 
+  /* cases vides (emplacements de projets à venir) */
+  .tile-empty{ cursor:default; }
+  .tile-empty .tile-face{
+    background:var(--tile-empty-bg);
+    border:2px dashed var(--tile-empty-border);
+    box-shadow:none;
+  }
+  .tile-empty .tile-face::after{ content:none; }
+  .tile-empty:hover .tile-face{
+    transform:none;
+    box-shadow:none;
+  }
+
   /* densité de grille */
   main[data-density="grand"]  .grid{ --cols:3; }
   main[data-density="moyen"]  .grid{ --cols:4; }
@@ -255,8 +272,14 @@
     background:linear-gradient(160deg,#8fc7f0,#4a90d9);
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 6px 16px rgba(74,144,217,0.4);
+    overflow:hidden;
   }
   .profile-avatar svg{ width:48px; height:48px; stroke:#fff; }
+  .profile-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
   .profile-modal h2{ margin-bottom:2px; }
   .profile-role{ color:#4a90d9; font-weight:700; font-size:0.9rem; margin-bottom:16px; }
   .profile-bio{ text-align:left; margin-bottom:18px; }
@@ -384,12 +407,7 @@
 <div class="overlay" id="profile-overlay">
   <div class="modal profile-modal">
     <div class="modal-body">
-      <div class="profile-avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4"></circle>
-          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path>
-        </svg>
-      </div>
+      <div class="profile-avatar" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
       <div class="profile-role" id="profile-role"></div>
       <p class="profile-bio" id="profile-bio"></p>
@@ -412,10 +430,14 @@ const projects = [
     tag: "Site web",
     color1: "#f5a623", color2: "#f76b1c",
     image: "https://pokeflip.com/cdn/shop/articles/The_Phenomenal_Firepower_of_Charizard_-_The_Ultimate_Pokemon.jpg",
-    description: "Starter à l’aveugle est un jeu à deux joueurs où chacun construit une équipe de 6 Pokémon, sans choisir directement les siens. À chaque manche, un joueur voit 3 Pokémon et doit les présenter à son adversaire selon une règle établi par les joueurs (catégorie Pokédex, groupe d’œuf, apparence, etc.) et celui-ci en choisi un puis on inverse. Quand les deux équipes sont prête, a l'aide de pokémon Shodown, les joueurs build leurs pokémons et s'affronte en 1v1 ou 2v2 et que le meilleur gagne.",
+    description: "Un site interactif autour du choix de starter Pokémon 'à l'aveugle', avec structure de contenu et déploiement sur GitHub Pages.",
     link: "https://firedarkrp-pro.github.io/Starter-l-aveugle/main/"
   },
 ];
+
+/* Nombre de cases vides affichées après vos projets (modifiable) */
+const floorCount = 3
+const emptySlotsCount = floorCount*6;
 
 /* =========================================================
    2) Vos informations personnelles (fiche accessible via l'icône visage)
@@ -428,6 +450,9 @@ const profile = {
   location: "Chemazé (53200)",
   phone: "07 80 04 05 80",
   email: "johnny.granger.pro@gmail.com",
+  /* Mettez ici le nom du fichier de votre photo (ex: "photo.jpg"), à placer dans le même
+     dossier que index.html. Laissez vide ("") pour garder l'icône par défaut. */
+  photo: "PP.png",
   skills: {
     "Langages de programmation": ["Java", "Python", "C", "Bash", "Kotlin", "Robotframework", "Prompt engineering", "Vibe coding"],
     "Web": ["HTML & CSS", "PHP & Symfony", "JavaScript", "Express.js", "Node.js", "jQuery", "Bootstrap"],
@@ -442,6 +467,13 @@ const profile = {
 };
 
 function renderProfile(){
+  document.getElementById('profile-avatar').innerHTML = profile.photo
+    ? `<img src="${profile.photo}" alt="${profile.name}">`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+         <circle cx="12" cy="8" r="4"></circle>
+         <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path>
+       </svg>`;
+
   document.getElementById('profile-name').textContent = profile.name;
   document.getElementById('profile-role').textContent = profile.role;
   document.getElementById('profile-bio').textContent = profile.bio;
@@ -487,6 +519,17 @@ projects.forEach((p, i) => {
   tile.addEventListener('click', () => openProject(i));
   grid.appendChild(tile);
 });
+
+slots = emptySlotsCount - projects.length
+for(let i = 0; i < slots; i++){
+  const empty = document.createElement('div');
+  empty.className = 'tile tile-empty';
+  empty.innerHTML = `
+    <div class="tile-face"></div>
+    <div class="tile-title">&nbsp;</div>
+  `;
+  grid.appendChild(empty);
+}
 
 /* =========================================================
    Modale projet
