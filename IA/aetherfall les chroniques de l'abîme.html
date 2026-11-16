@@ -1208,6 +1208,13 @@
         appState.run.enemyProjectiles = [];
         appState.run.aoeZones = [];
         appState.run.portalExit = null;
+
+        // Restaurer le portail si le Gardien de cette salle a déjà été vaincu.
+        // Le portail reste disponible même après avoir quitté puis revisité la salle.
+        if (room.type === 'boss' && room.cleared) {
+          appState.run.portalExit = { x: 85, y: 0, angle: 0 };
+        }
+
         document.getElementById('bossHudWrapper').classList.add('hidden');
 
         // Régénération partielle du bouclier entre salles
