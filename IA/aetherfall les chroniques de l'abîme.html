@@ -1,0 +1,3099 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AETHERFALL : Les Chroniques de l'Abîme</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #07080d;
+      --bg-panel: rgba(14, 17, 28, 0.92);
+      --accent-cyan: #22d3ee;
+      --accent-gold: #f59e0b;
+      --accent-purple: #a855f7;
+      --accent-crimson: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-void);
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .font-display {
+      font-family: 'Cinzel', serif;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.7);
+    }
+
+    /* Glowing & Glass Effects */
+    .glass-panel {
+      background: linear-gradient(145deg, rgba(16, 20, 34, 0.92), rgba(9, 11, 20, 0.96));
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .gold-border {
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
+    }
+
+    .cyan-glow {
+      text-shadow: 0 0 18px rgba(34, 211, 238, 0.65);
+    }
+
+    .gold-glow {
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.65);
+    }
+
+    .btn-arcane {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-arcane::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+      transition: left 0.45s ease;
+    }
+    .btn-arcane:hover::before {
+      left: 100%;
+    }
+    .btn-arcane:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3);
+    }
+    .btn-arcane:active:not(:disabled) {
+      transform: translateY(0px);
+    }
+
+    /* Rarity Borders */
+    .rarity-common { border-color: #94a3b8; box-shadow: 0 0 15px rgba(148, 163, 184, 0.15); }
+    .rarity-rare { border-color: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.28); }
+    .rarity-epic { border-color: #c084fc; box-shadow: 0 0 25px rgba(192, 132, 252, 0.35); }
+    .rarity-legendary { border-color: #fbbf24; box-shadow: 0 0 30px rgba(251, 191, 36, 0.45); }
+
+    @keyframes pulseSlow {
+      0%, 100% { opacity: 0.75; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+    .animate-pulse-slow {
+      animation: pulseSlow 3.5s infinite ease-in-out;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(8px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .animate-enter {
+      animation: floatUp 0.28s ease-out forwards;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body class="bg-[#07080d] text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- CANVAS PRINCIPAL (Arrière-plan animé dans le menu + Jeu actif) -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- BOUTON AUDIO FLOTTANT TOUJOURS ACCESSIBLE -->
+  <div class="fixed top-3 right-3 z-50 flex items-center gap-2">
+    <button id="btnToggleAudio" title="Activer / Couper le son" class="glass-panel px-3 py-2 rounded-xl text-xs font-mono-tech flex items-center gap-2 hover:border-cyan-400 transition cursor-pointer">
+      <span id="audioIcon">🔊</span>
+      <span id="audioLabel" class="hidden sm:inline text-slate-300">SON ON</span>
+    </button>
+    <button id="btnPauseHud" title="Pause (Échap)" class="hidden glass-panel px-3 py-2 rounded-xl text-xs font-mono-tech hover:border-amber-400 transition cursor-pointer">
+      ⏸ PAUSE
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 1. ÉCRAN D'ACCUEIL / SANCTUAIRE MÉTA (HUB)                            -->
+  <!-- ===================================================================== -->
+  <div id="screenHub" class="fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-6 md:p-8 overflow-y-auto bg-gradient-to-b from-[#07080d]/70 via-[#07080d]/60 to-[#07080d]/90">
+    
+    <!-- En-tête du Sanctuaire -->
+    <header class="flex flex-col md:flex-row items-center justify-between gap-4 max-w-7xl w-full mx-auto">
+      <div class="text-center md:text-left">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-mono-tech tracking-widest uppercase mb-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          Faille Dimensionnelle v2.4
+        </div>
+        <h1 class="font-display text-3xl sm:text-5xl md:text-6xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-cyan-300 gold-glow">
+          AETHERFALL
+        </h1>
+        <p class="font-display text-xs sm:text-sm md:text-base tracking-[0.28em] text-slate-300 uppercase mt-1">
+          Les Chroniques de l'Abîme
+        </p>
+      </div>
+
+      <!-- Ressources Persistantes & Navigation Onglets -->
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <div class="glass-panel gold-border px-4 py-2.5 rounded-2xl flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 text-lg">✦</div>
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-amber-300/80 font-mono-tech">Éclats d'Éther</div>
+            <div id="hubEtherCount" class="text-xl font-bold font-mono-tech text-amber-300">0</div>
+          </div>
+        </div>
+
+        <nav class="glass-panel p-1.5 rounded-2xl flex gap-1">
+          <button data-hubtab="deploy" class="hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 transition cursor-pointer">
+            ⚔️ Expédition
+          </button>
+          <button data-hubtab="forge" class="hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            🔮 Atelier d'Éther
+          </button>
+          <button data-hubtab="codex" class="hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
+            📜 Codex & Records
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- CONTENU CENTRAL DES ONGLETS DU HUB -->
+    <main class="max-w-7xl w-full mx-auto my-auto py-4">
+      
+      <!-- ONGLET 1 : SÉLECTION DE CLASSE & DÉPLOIEMENT -->
+      <section id="tabDeploy" class="animate-enter space-y-6">
+        <div class="text-center max-w-2xl mx-auto">
+          <h2 class="font-display text-xl sm:text-2xl font-bold text-slate-100">Choisissez votre Archetype d'Explorateur</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">Chaque classe possède une arme signature, des statistiques propres et une compétence tactique unique.</p>
+        </div>
+
+        <div id="classGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <!-- Injecté dynamiquement par JS -->
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          <button id="btnStartRun" class="btn-arcane w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 text-slate-950 font-display font-black text-base sm:text-lg tracking-wider shadow-xl shadow-amber-500/25 cursor-pointer">
+            PLONGER DANS L'ABÎME ➔
+          </button>
+        </div>
+      </section>
+
+      <!-- ONGLET 2 : ATELIER D'AMÉLIORATIONS PERMANENTES -->
+      <section id="tabForge" class="hidden animate-enter space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="font-display text-xl sm:text-2xl font-bold text-amber-300">Atelier de Transmutation Éthérée</h2>
+            <p class="text-xs sm:text-sm text-slate-400">Investissez vos Éclats d'Éther pour renforcer définitivement tous vos explorateurs.</p>
+          </div>
+          <button id="btnResetMeta" class="text-xs text-slate-500 hover:text-rose-400 underline self-start sm:self-auto cursor-pointer">
+            Réinitialiser les améliorations (remboursement 100%)
+          </button>
+        </div>
+
+        <div id="metaUpgradesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Injecté dynamiquement par JS -->
+        </div>
+      </section>
+
+      <!-- ONGLET 3 : CODEX / BESTIAIRE & STATISTIQUES -->
+      <section id="tabCodex" class="hidden animate-enter space-y-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4" id="careerStatsGrid">
+          <!-- Stats de carrière injectées -->
+        </div>
+
+        <div class="glass-panel rounded-2xl p-4 sm:p-6">
+          <h3 class="font-display text-lg font-bold text-cyan-300 mb-4 flex items-center gap-2">
+            <span>👁️</span> Entités Répertoriées de l'Abîme
+          </h3>
+          <div id="bestiaryGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Bestiaire injecté -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Pied de page : Contrôles rapides -->
+    <footer class="max-w-7xl w-full mx-auto pt-2 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 font-mono-tech">
+      <div class="flex flex-wrap items-center gap-3">
+        <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">ZQSD / WASD</kbd> Déplacer</span>
+        <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">SOURIS + CLIC G</kbd> Viser & Attaquer</span>
+        <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">CLIC D / ESPACE</kbd> Compétence</span>
+        <span><kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 border border-slate-700">SHIFT</kbd> Esquive (Invulnérable)</span>
+      </div>
+      <div class="text-slate-500">Progression sauvegardée automatiquement</div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 2. HUD EN JEU (INTERFACE TACTIQUE SUPERPOSÉE AU CANVAS)               -->
+  <!-- ===================================================================== -->
+  <div id="hudContainer" class="hidden fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-3 sm:p-5">
+    
+    <!-- BARRE SUPÉRIEURE : Vitalité, XP, Ressources, Boss Bar, Minimap -->
+    <div class="flex items-start justify-between gap-4">
+      
+      <!-- Bloc Joueur (Haut Gauche) -->
+      <div class="glass-panel rounded-2xl p-3 sm:p-3.5 w-64 sm:w-80 pointer-events-auto space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span id="hudClassIcon" class="text-lg">⚔️</span>
+            <div>
+              <div id="hudClassName" class="text-xs font-bold text-slate-200 leading-tight">Avant-Garde Solaire</div>
+              <div class="text-[11px] font-mono-tech text-cyan-400">Niveau <span id="hudLevel">1</span></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5 text-xs font-mono-tech">
+            <span class="text-amber-400 font-bold" title="Or de la run">🪙 <span id="hudGold">0</span></span>
+            <span class="text-cyan-300 font-bold" title="Éclats d'Éther récoltés">✦ <span id="hudEther">0</span></span>
+          </div>
+        </div>
+
+        <!-- Barre de PV -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] font-mono-tech">
+            <span class="text-rose-300 font-semibold">VITALITÉ</span>
+            <span id="hudHpText" class="text-slate-200">120 / 120</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5">
+            <div id="hudHpBar" class="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full transition-all duration-150" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Barre de Bouclier (si > 0) -->
+        <div id="hudShieldWrapper" class="hidden space-y-1">
+          <div class="flex justify-between text-[10px] font-mono-tech">
+            <span class="text-sky-300">BOUCLIER ÉTHÉRÉ</span>
+            <span id="hudShieldText" class="text-sky-200">0 / 0</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+            <div id="hudShieldBar" class="h-full bg-sky-400 rounded-full transition-all duration-150" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Barre d'XP -->
+        <div class="space-y-0.5">
+          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+            <div id="hudXpBar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-150" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Centre Haut : Indicateur d'étage & Barre de Boss -->
+      <div class="flex-1 flex flex-col items-center max-w-xl mx-auto">
+        <div class="glass-panel px-4 py-1.5 rounded-full text-xs font-mono-tech tracking-wider text-slate-200 flex items-center gap-3">
+          <span class="text-amber-400 font-bold">STRATE <span id="hudFloor">1</span></span>
+          <span class="text-slate-600">|</span>
+          <span id="hudRoomType" class="text-cyan-300">Salle d'Entrée</span>
+        </div>
+
+        <!-- Barre de Vie du Boss (cachée hors combat de boss) -->
+        <div id="bossHudWrapper" class="hidden w-full mt-3 glass-panel border-rose-500/50 rounded-2xl p-3 animate-enter">
+          <div class="flex items-center justify-between mb-1.5">
+            <span id="bossNameHud" class="font-display font-bold text-sm sm:text-base text-rose-300 tracking-wide uppercase">GARDIEN DE L'ABÎME</span>
+            <span id="bossHpHudText" class="font-mono-tech text-xs text-rose-200">1000 / 1000</span>
+          </div>
+          <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden border border-rose-500/40 p-0.5">
+            <div id="bossHpHudBar" class="h-full bg-gradient-to-r from-rose-700 via-rose-500 to-amber-400 rounded-full transition-all duration-100" style="width: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bloc Minimap (Haut Droite, décalé sous les boutons audio/pause) -->
+      <div class="mt-10 sm:mt-11 glass-panel rounded-2xl p-2.5 pointer-events-auto flex flex-col items-center">
+        <div class="text-[10px] font-mono-tech text-slate-400 uppercase tracking-wider mb-1">Carte de la Strate</div>
+        <canvas id="minimapCanvas" width="136" height="136" class="rounded-xl bg-slate-950/90 border border-slate-800"></canvas>
+        <div id="roomClearHint" class="hidden mt-1.5 text-[10px] font-mono-tech text-emerald-400 animate-pulse text-center">
+          Portails ouverts !
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRE INFÉRIEURE : Compétences, Reliques équipées et Rappel Touches -->
+    <div class="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-3">
+      
+      <!-- Inventaire des Reliques actives -->
+      <div class="glass-panel rounded-2xl p-2.5 pointer-events-auto max-w-md w-full sm:w-auto">
+        <div class="flex items-center justify-between gap-4 mb-1.5">
+          <span class="text-[10px] font-mono-tech uppercase tracking-wider text-slate-400">Reliques Actives (<span id="hudRelicCount">0</span>/<span id="hudRelicMax">6</span>)</span>
+          <span id="hudStatsMini" class="text-[10px] font-mono-tech text-cyan-300">ATQ: 20 | CRIT: 10%</span>
+        </div>
+        <div id="hudRelicsList" class="flex flex-wrap gap-1.5 min-h-[34px]">
+          <span class="text-xs text-slate-600 italic px-1 self-center">Aucune relique équipée</span>
+        </div>
+      </div>
+
+      <!-- Cooldowns Tactiques (Compétence & Dash) -->
+      <div class="flex items-center gap-3 pointer-events-auto">
+        <!-- Compétence de Classe -->
+        <div class="glass-panel rounded-2xl p-2.5 flex items-center gap-3 min-w-[155px]">
+          <div class="relative w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-xl overflow-hidden">
+            <span id="hudSkillIcon">🔥</span>
+            <div id="hudSkillCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-xs font-mono-tech font-bold text-amber-300 hidden">3.0s</div>
+          </div>
+          <div>
+            <div id="hudSkillName" class="text-xs font-bold text-amber-200">Ruée Solaire</div>
+            <div class="text-[10px] font-mono-tech text-slate-400">Clic Droit / Espace</div>
+          </div>
+        </div>
+
+        <!-- Esquive / Dash -->
+        <div class="glass-panel rounded-2xl p-2.5 flex items-center gap-3 min-w-[140px]">
+          <div class="relative w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-xl overflow-hidden">
+            <span>💨</span>
+            <div id="hudDashCdOverlay" class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-xs font-mono-tech font-bold text-cyan-300 hidden">1.5s</div>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-cyan-200">Distorsion</div>
+            <div class="text-[10px] font-mono-tech text-slate-400">Touche Shift</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 3. MODALES INTERACTIVES (LEVEL UP / COFFRE / MARCHAND / AUTEL / PAUSE) -->
+  <!-- ===================================================================== -->
+  
+  <!-- MODALE CHOIX DE BÉNÉDICTION / RELIQUE -->
+  <div id="modalLoot" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel gold-border rounded-3xl max-w-4xl w-full p-5 sm:p-8 animate-enter space-y-6">
+      <div class="text-center">
+        <div id="lootModalBadge" class="inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-mono-tech uppercase tracking-widest mb-2">
+          ASCENSION DE NIVEAU
+        </div>
+        <h2 id="lootModalTitle" class="font-display text-2xl sm:text-3xl font-black text-white">Choisissez une Bénédiction Éthérée</h2>
+        <p id="lootModalSubtitle" class="text-xs sm:text-sm text-slate-400 mt-1">Sélectionnez un artefact ou une amélioration pour forger votre synergie.</p>
+      </div>
+
+      <div id="lootCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 3 cartes générées dynamiquement -->
+      </div>
+
+      <div class="flex justify-center pt-1">
+        <button id="btnRerollLoot" class="px-4 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-xs font-mono-tech text-amber-300 flex items-center gap-2 transition cursor-pointer">
+          🎲 Relancer les choix (<span id="rerollCostText">25</span> Or)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE MARCHAND / AUTEL DU DESTIN -->
+  <div id="modalEvent" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-3xl w-full p-5 sm:p-8 animate-enter space-y-6">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3.5">
+          <div id="eventIcon" class="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-2xl">⚖️</div>
+          <div>
+            <h2 id="eventTitle" class="font-display text-xl sm:text-2xl font-bold text-slate-100">Marchand Errant du Voile</h2>
+            <p id="eventDesc" class="text-xs sm:text-sm text-slate-400 mt-0.5">« Tout a un prix dans l'Abîme, voyageur... »</p>
+          </div>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-amber-500/40 font-mono-tech text-sm text-amber-400 font-bold">
+          🪙 <span id="eventPlayerGold">0</span>
+        </div>
+      </div>
+
+      <div id="eventOptionsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Options injectées -->
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button id="btnCloseEvent" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition cursor-pointer">
+          Quitter et continuer ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE PAUSE -->
+  <div id="modalPause" class="hidden fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-6 animate-enter">
+      <h2 class="font-display text-3xl font-black text-cyan-300 tracking-wider">PAUSE TACTIQUE</h2>
+      <div id="pauseStatsSummary" class="bg-slate-900/80 rounded-2xl p-4 text-left space-y-2 text-xs font-mono-tech text-slate-300 border border-slate-800">
+        <!-- Résumé stats actuelles -->
+      </div>
+      <div class="space-y-3">
+        <button id="btnResumeGame" class="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition cursor-pointer">
+          Reprendre l'expédition
+        </button>
+        <button id="btnAbandonRun" class="w-full py-3 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/40 text-rose-200 font-semibold transition cursor-pointer">
+          Abandonner et retourner au Sanctuaire
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE BILAN DE FIN DE RUN (MORT OU VICTOIRE DE CYCLE) -->
+  <div id="modalGameOver" class="hidden fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-lg flex items-center justify-center p-4">
+    <div class="glass-panel gold-border rounded-3xl max-w-xl w-full p-6 sm:p-8 text-center space-y-6 animate-enter">
+      <div>
+        <div id="endRunBadge" class="inline-block px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono-tech uppercase tracking-widest mb-2">
+          CONNEXION ROMPUE
+        </div>
+        <h2 id="endRunTitle" class="font-display text-3xl sm:text-4xl font-black text-white">L'Abîme vous a englouti</h2>
+        <p id="endRunSubtitle" class="text-sm text-slate-400 mt-1">Votre essence retourne au Sanctuaire avec les connaissances acquises.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-left font-mono-tech">
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+          <div class="text-[11px] text-slate-400">Strate atteinte</div>
+          <div id="statEndFloor" class="text-xl font-bold text-cyan-300">Strate 1</div>
+        </div>
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+          <div class="text-[11px] text-slate-400">Ennemis vaincus</div>
+          <div id="statEndKills" class="text-xl font-bold text-slate-100">0</div>
+        </div>
+        <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+          <div class="text-[11px] text-slate-400">Dégâts infligés</div>
+          <div id="statEndDamage" class="text-xl font-bold text-rose-300">0</div>
+        </div>
+        <div class="bg-amber-950/40 p-3.5 rounded-2xl border border-amber-500/40">
+          <div class="text-[11px] text-amber-300/80">Éclats d'Éther gagnés</div>
+          <div id="statEndEther" class="text-xl font-bold text-amber-300">+0 ✦</div>
+        </div>
+      </div>
+
+      <button id="btnReturnHub" class="btn-arcane w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-300 text-slate-950 font-display font-black text-base tracking-wider shadow-lg cursor-pointer">
+        RETOURNER AU SANCTUAIRE
+      </button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION TOAST DISCRÈTE -->
+  <div id="toastBanner" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+    <div class="glass-panel border-cyan-400/50 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-cyan-200 shadow-xl">
+      <span id="toastText">Notification</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MOTEUR DE JEU COMPLET (AUDIO + MÉTA + DONJON + COMBAT + RENDU 60FPS)  -->
+  <!-- ===================================================================== -->
+  <script>
+    (() => {
+      'use strict';
+
+      /* =========================================================================
+         1. SYNTHÉTISEUR AUDIO PROCÉDURAL (WEB AUDIO API - ZÉRO DÉPENDANCE)
+         ========================================================================= */
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+          this.masterGain = null;
+        }
+
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+              this.masterGain = this.ctx.createGain();
+              this.masterGain.gain.value = 0.25;
+              this.masterGain.connect(this.ctx.destination);
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+
+        toggle() {
+          this.enabled = !this.enabled;
+          if (this.masterGain) {
+            this.masterGain.gain.value = this.enabled ? 0.25 : 0;
+          }
+          return this.enabled;
+        }
+
+        playTone(freq, endFreq, duration, type = 'sine', vol = 0.4) {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (endFreq !== freq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+          }
+
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now);
+          osc.stop(now + duration);
+        }
+
+        playSlash() {
+          this.playTone(420, 110, 0.14, 'sawtooth', 0.35);
+        }
+        playShoot() {
+          this.playTone(680, 220, 0.11, 'triangle', 0.28);
+        }
+        playArcaneBlast() {
+          this.playTone(260, 75, 0.28, 'sine', 0.5);
+          this.playTone(520, 140, 0.22, 'triangle', 0.25);
+        }
+        playDash() {
+          this.playTone(300, 750, 0.16, 'sine', 0.3);
+        }
+        playHit(isCrit = false) {
+          if (isCrit) {
+            this.playTone(880, 320, 0.15, 'square', 0.3);
+          } else {
+            this.playTone(190, 65, 0.09, 'sawtooth', 0.25);
+          }
+        }
+        playPlayerHurt() {
+          this.playTone(150, 45, 0.28, 'sawtooth', 0.55);
+        }
+        playPickup(isEther = false) {
+          if (isEther) {
+            this.playTone(587, 1174, 0.22, 'sine', 0.35);
+          } else {
+            this.playTone(720, 980, 0.08, 'sine', 0.2);
+          }
+        }
+        playLevelUp() {
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((n, idx) => {
+            setTimeout(() => this.playTone(n, n * 1.02, 0.25, 'triangle', 0.35), idx * 75);
+          });
+        }
+        playRoomClear() {
+          this.playTone(392, 587.33, 0.35, 'sine', 0.3);
+        }
+      }
+
+      const sound = new SoundEngine();
+
+      /* =========================================================================
+         2. DONNÉES DU JEU : CLASSES, MÉTA-UPGRADES, RELIQUES, ENNEMIS
+         ========================================================================= */
+      const CLASSES = [
+        {
+          id: 'vanguard',
+          name: 'Avant-Garde Solaire',
+          role: 'Combattant Équilibré • Arc Énergétique',
+          icon: '⚔️',
+          color: '#f59e0b',
+          secondaryColor: '#fef08a',
+          hp: 130,
+          speed: 255,
+          damage: 24,
+          attackRate: 2.6, // attaques / sec
+          critChance: 0.12,
+          attackType: 'melee_arc',
+          skillName: 'Ruée Flamboyante',
+          skillIcon: '🔥',
+          skillCooldown: 4.5,
+          skillDesc: 'Fonce vers le curseur dans une explosion solaire, étourdissant et brûlant les ennemis traversés.',
+          weaponDesc: 'Frappe en croissant énergétique à moyenne portée qui détruit les projectiles ennemis mineurs.'
+        },
+        {
+          id: 'voidwalker',
+          name: 'Arpenteur du Vide',
+          role: 'Assassin Agile • Dagues Prismatiques',
+          icon: '🗡️',
+          color: '#22d3ee',
+          secondaryColor: '#a5f3fc',
+          hp: 95,
+          speed: 315,
+          damage: 17,
+          attackRate: 4.2,
+          critChance: 0.22,
+          attackType: 'rapid_daggers',
+          skillName: 'Saut d’Ombre',
+          skillIcon: '🌀',
+          skillCooldown: 4.0,
+          skillDesc: 'Se téléporte instantanément au curseur, libère 8 dagues spectrales et devient furtif 1.5s.',
+          weaponDesc: 'Projette des lames d’éther ultra-rapides à haute chance de coup critique.'
+        },
+        {
+          id: 'architect',
+          name: 'Architecte Runique',
+          role: 'Mage Cuirassé • Orbes Gravitationnels',
+          icon: '🔮',
+          color: '#c084fc',
+          secondaryColor: '#f3e8ff',
+          hp: 115,
+          shield: 45,
+          speed: 225,
+          damage: 32,
+          attackRate: 1.7,
+          critChance: 0.10,
+          attackType: 'arcane_orb',
+          skillName: 'Singularité Runique',
+          skillIcon: '🌌',
+          skillCooldown: 5.5,
+          skillDesc: 'Déclenche une onde gravitationnelle massive qui repousse, ralentit et pulvérise les ennemis proches.',
+          weaponDesc: 'Lance des sphères arcaniques explosives infligeant des dégâts de zone.'
+        }
+      ];
+
+      const META_UPGRADES = [
+        { id: 'maxHp', name: 'Vitalité Éthérée', icon: '❤️', desc: '+15 PV Maximum par rang', baseCost: 30, costMult: 1.45, maxLevel: 10 },
+        { id: 'damage', name: 'Acuité Runique', icon: '⚔️', desc: '+8% Dégâts de base par rang', baseCost: 40, costMult: 1.5, maxLevel: 10 },
+        { id: 'speed', name: 'Célérité du Voile', icon: '⚡', desc: '+4% Vitesse de déplacement par rang', baseCost: 35, costMult: 1.45, maxLevel: 8 },
+        { id: 'crit', name: 'Précision Fatale', icon: '🎯', desc: '+3% Chance de critique par rang', baseCost: 45, costMult: 1.55, maxLevel: 8 },
+        { id: 'etherGain', name: 'Résonance d’Éther', icon: '✦', desc: '+15% Éclats d’Éther récoltés par rang', baseCost: 50, costMult: 1.6, maxLevel: 8 },
+        { id: 'relicSlots', name: 'Matrice d’Artefacts', icon: '💠', desc: '+1 Emplacement de Relique max en run', baseCost: 120, costMult: 2.2, maxLevel: 3 }
+      ];
+
+      const RELIC_POOL = [
+        // COMMUN
+        { id: 'atk_spd_1', name: 'Chronomètre Fêlé', rarity: 'common', icon: '⏱️', type: 'stat', desc: 'Augmente la cadence d’attaque de +18%.', apply: (p) => { p.attackRate *= 1.18; } },
+        { id: 'hp_up_1', name: 'Cœur de Quartz', rarity: 'common', icon: '💎', type: 'stat', desc: 'Augmente les PV max de +25 et soigne 25 PV.', apply: (p) => { p.maxHp += 25; p.heal(25); } },
+        { id: 'speed_1', name: 'Bottes de Mercure', rarity: 'common', icon: '👢', type: 'stat', desc: 'Augmente la vitesse de déplacement de +14%.', apply: (p) => { p.speed *= 1.14; } },
+        { id: 'crit_1', name: 'Lentille de Focus', rarity: 'common', icon: '🔍', type: 'stat', desc: '+10% Chance critique et +25% Dégâts critiques.', apply: (p) => { p.critChance += 0.10; p.critMult += 0.25; } },
+        { id: 'cdr_1', name: 'Sablier d’Obsidienne', rarity: 'common', icon: '⏳', type: 'stat', desc: 'Réduit les temps de recharge de compétence et dash de 18%.', apply: (p) => { p.cdrMult *= 0.82; } },
+
+        // RARE
+        { id: 'multishot', name: 'Prisme de Bifurcation', rarity: 'rare', icon: '🔱', type: 'relic', desc: 'Ajoute +1 projectile supplémentaire à vos attaques principales.', apply: (p) => { p.mods.multishot += 1; } },
+        { id: 'chain_lightning', name: 'Bobine de Tesla Arcanique', rarity: 'rare', icon: '⚡', type: 'relic', desc: 'Vos attaques ont 35% de chance de déclencher un éclair en chaîne.', apply: (p) => { p.mods.lightning += 0.35; } },
+        { id: 'vampirism', name: 'Calice Sanglant', rarity: 'rare', icon: '🍷', type: 'relic', desc: 'Éliminer un ennemi restaure 3 PV.', apply: (p) => { p.mods.lifeOnKill += 3; } },
+        { id: 'orbitals', name: 'Sentinelles Orbitales', rarity: 'rare', icon: '🪐', type: 'relic', desc: 'Invoque 2 orbes protecteurs qui orbitent et blessent les ennemis.', apply: (p) => { p.mods.orbitals += 2; } },
+        { id: 'shield_gen', name: 'Égide Cristalline', rarity: 'rare', icon: '🛡️', type: 'relic', desc: 'Octroie +40 Bouclier max qui se régénère entre chaque salle.', apply: (p) => { p.maxShield += 40; p.shield += 40; } },
+
+        // ÉPIQUE
+        { id: 'ricochet', name: 'Miroir Fracturé', rarity: 'epic', icon: '🪞', type: 'relic', desc: 'Vos projectiles ricochent sur 2 cibles supplémentaires.', apply: (p) => { p.mods.ricochet += 2; } },
+        { id: 'fire_aura', name: 'Couronne de Supernova', rarity: 'epic', icon: '☀️', type: 'relic', desc: 'Brûle continuellement tous les ennemis dans un rayon autour de vous.', apply: (p) => { p.mods.fireAura += 18; } },
+        { id: 'explosive_rounds', name: 'Noyau Instable', rarity: 'epic', icon: '💥', type: 'relic', desc: 'Vos coups critiques déclenchent une explosion de zone.', apply: (p) => { p.mods.critExplosion = true; p.critChance += 0.08; } },
+
+        // LÉGENDAIRE
+        { id: 'avatar_ether', name: 'Couronne de l’Architecte Suprême', rarity: 'legendary', icon: '👑', type: 'relic', desc: '+30% Dégâts, +25% Cadence, +1 Projectile et +1 Orbe Orbital.', apply: (p) => { p.damage *= 1.3; p.attackRate *= 1.25; p.mods.multishot += 1; p.mods.orbitals += 1; } },
+        { id: 'phoenix_heart', name: 'Cœur du Phénix Astral', rarity: 'legendary', icon: '🦅', type: 'relic', desc: 'Vous ressuscitez une fois avec 60% de vos PV dans une nova destructrice.', apply: (p) => { p.mods.revive += 1; } }
+      ];
+
+      const BESTIARY = [
+        { id: 'stalker', name: 'Rôdeur de Cendre', icon: '🐺', role: 'Prédateur Rapide', desc: 'Charge agressivement au corps-à-corps. Télégraphie son bond par une lueur rouge.' },
+        { id: 'sentinel', name: 'Sentinelle Prismatique', icon: '💠', role: 'Artilleur à Distance', desc: 'Maintient ses distances et tire des salves d’énergie cyan.' },
+        { id: 'summoner', name: 'Invocateur du Néant', icon: '👁️', role: 'Soutien & Contrôle', desc: 'Invoque des sbires et crée des zones de distorsion instables au sol.' },
+        { id: 'colossus', name: 'Colosse d’Obsidienne', icon: '🗿', role: 'Gardien Cuirassé', desc: 'Lent mais doté d’une carapace massive. Émet des ondes de choc circulaires.' },
+        { id: 'boss', name: 'Souverains de l’Abîme (Boss)', icon: '👹', role: 'Gardien de Strate', desc: 'Entités colossales gardant le portail vers les strates inférieures. Maîtrisent plusieurs phases.' }
+      ];
+
+      const BOSS_NAMES = [
+        'MALAKOR, L’ŒIL DE LA SINGULARITÉ',
+        'VEXIA, TISSEUSE DU NÉANT',
+        'KHARON, LE COLOSSE D’ÉTHER NOIR',
+        'AURELION, L’ARCHONTE DÉCHU'
+      ];
+
+      /* =========================================================================
+         3. GESTION DE LA SAUVEGARDE PERSISTANTE (LOCALSTORAGE)
+         ========================================================================= */
+      const DEFAULT_SAVE = {
+        etherShards: 60, // Petit capital de départ pour tester l'atelier
+        selectedClass: 'vanguard',
+        upgrades: {
+          maxHp: 0,
+          damage: 0,
+          speed: 0,
+          crit: 0,
+          etherGain: 0,
+          relicSlots: 0
+        },
+        stats: {
+          runsPlayed: 0,
+          bestFloor: 1,
+          totalKills: 0,
+          bossesDefeated: 0
+        }
+      };
+
+      let saveData = loadSave();
+
+      function loadSave() {
+        try {
+          const raw = localStorage.getItem('aetherfall_save_v1');
+          if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SAVE));
+          const parsed = JSON.parse(raw);
+          return {
+            ...JSON.parse(JSON.stringify(DEFAULT_SAVE)),
+            ...parsed,
+            upgrades: { ...DEFAULT_SAVE.upgrades, ...(parsed.upgrades || {}) },
+            stats: { ...DEFAULT_SAVE.stats, ...(parsed.stats || {}) }
+          };
+        } catch (e) {
+          return JSON.parse(JSON.stringify(DEFAULT_SAVE));
+        }
+      }
+
+      function persistSave() {
+        try {
+          localStorage.setItem('aetherfall_save_v1', JSON.stringify(saveData));
+        } catch (e) {
+          // Ignorer si stockage restreint
+        }
+      }
+
+      /* =========================================================================
+         4. UTILITAIRES MATHÉMATIQUES & VISUELS
+         ========================================================================= */
+      const rand = (min, max) => Math.random() * (max - min) + min;
+      const randInt = (min, max) => Math.floor(rand(min, max + 1));
+      const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+      const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
+      function showToast(msg) {
+        const banner = document.getElementById('toastBanner');
+        document.getElementById('toastText').textContent = msg;
+        banner.classList.remove('opacity-0');
+        clearTimeout(banner._timer);
+        banner._timer = setTimeout(() => {
+          banner.classList.add('opacity-0');
+        }, 2600);
+      }
+
+      /* =========================================================================
+         5. GÉNÉRATEUR PROCÉDURAL D'ÉTAGE (GRAPHE DE SALLES)
+         ========================================================================= */
+      function generateFloorGraph(floorNum) {
+        // Grille logique 5x5 pour placer 7 à 9 salles connectées
+        const gridSize = 5;
+        const startX = 2, startY = 2;
+        const rooms = new Map();
+        const key = (x, y) => `${x},${y}`;
+
+        const addRoom = (x, y, type) => {
+          const room = {
+            gx: x,
+            gy: y,
+            type, // 'start', 'combat', 'elite', 'treasure', 'merchant', 'shrine', 'boss'
+            cleared: type === 'start' || type === 'merchant' || type === 'shrine',
+            visited: type === 'start',
+            enemies: [],
+            pickups: [],
+            chests: [],
+            interactable: null,
+            obstacles: [],
+            doors: { N: false, S: false, E: false, W: false }
+          };
+          rooms.set(key(x, y), room);
+          return room;
+        };
+
+        addRoom(startX, startY, 'start');
+        const frontier = [[startX, startY]];
+        const targetRooms = Math.min(10, 6 + Math.floor(floorNum * 0.7));
+
+        while (rooms.size < targetRooms && frontier.length > 0) {
+          const idx = randInt(0, frontier.length - 1);
+          const [cx, cy] = frontier[idx];
+          const dirs = [[0, -1], [0, 1], [1, 0], [-1, 0]].sort(() => Math.random() - 0.5);
+
+          let expanded = false;
+          for (const [dx, dy] of dirs) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && !rooms.has(key(nx, ny))) {
+              addRoom(nx, ny, 'combat');
+              frontier.push([nx, ny]);
+              expanded = true;
+              break;
+            }
+          }
+          if (!expanded) frontier.splice(idx, 1);
+        }
+
+        // Connecter les salles adjacentes
+        for (const room of rooms.values()) {
+          if (rooms.has(key(room.gx, room.gy - 1))) room.doors.N = true;
+          if (rooms.has(key(room.gx, room.gy + 1))) room.doors.S = true;
+          if (rooms.has(key(room.gx + 1, room.gy))) room.doors.E = true;
+          if (rooms.has(key(room.gx - 1, room.gy))) room.doors.W = true;
+        }
+
+        // Attribuer les rôles spéciaux (Boss sur la salle la plus éloignée du départ)
+        const otherRooms = Array.from(rooms.values()).filter(r => r.type !== 'start');
+        otherRooms.sort((a, b) => dist(b.gx, b.gy, startX, startY) - dist(a.gx, a.gy, startX, startY));
+
+        if (otherRooms.length > 0) {
+          otherRooms[0].type = 'boss';
+          otherRooms[0].cleared = false;
+        }
+        if (otherRooms.length > 1) {
+          otherRooms[1].type = 'treasure';
+          otherRooms[1].cleared = true;
+        }
+        if (otherRooms.length > 2) {
+          otherRooms[2].type = 'merchant';
+          otherRooms[2].cleared = true;
+        }
+        if (otherRooms.length > 3) {
+          otherRooms[3].type = 'shrine';
+          otherRooms[3].cleared = true;
+        }
+        if (otherRooms.length > 4 && floorNum >= 1) {
+          otherRooms[4].type = 'elite';
+          otherRooms[4].cleared = false;
+        }
+
+        // Peupler chaque salle (obstacles, coffres, interactifs)
+        for (const room of rooms.values()) {
+          populateRoomContent(room, floorNum);
+        }
+
+        return {
+          floorNum,
+          rooms,
+          currentKey: key(startX, startY)
+        };
+      }
+
+      function populateRoomContent(room, floorNum) {
+        // Piliers tactiques dans les salles de combat
+        if (room.type === 'combat' || room.type === 'elite') {
+          const layouts = [
+            [{ x: -240, y: -140, r: 34 }, { x: 240, y: -140, r: 34 }, { x: -240, y: 140, r: 34 }, { x: 240, y: 140, r: 34 }],
+            [{ x: 0, y: -150, r: 42 }, { x: 0, y: 150, r: 42 }],
+            [{ x: -190, y: 0, r: 38 }, { x: 190, y: 0, r: 38 }]
+          ];
+          room.obstacles = layouts[randInt(0, layouts.length - 1)];
+        }
+
+        if (room.type === 'treasure') {
+          room.chests.push({ x: 0, y: 0, opened: false, rarity: 'rare' });
+        } else if (room.type === 'merchant') {
+          room.interactable = { type: 'merchant', x: 0, y: -20, used: false };
+        } else if (room.type === 'shrine') {
+          room.interactable = { type: 'shrine', x: 0, y: -20, used: false };
+        }
+      }
+
+      /* =========================================================================
+         6. MOTEUR PRINCIPAL DU JEU (ÉTAT, ENTITÉS, COMBAT, RENDU)
+         ========================================================================= */
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const minimapCanvas = document.getElementById('minimapCanvas');
+      const mCtx = minimapCanvas.getContext('2d');
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+
+      function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // Dimensions logiques d'une salle (centrée en 0,0)
+      const ROOM_W = 1120;
+      const ROOM_H = 680;
+
+      // État global de l'application
+      const appState = {
+        mode: 'HUB', // 'HUB', 'PLAYING', 'PAUSED', 'MODAL', 'GAMEOVER'
+        bgParticles: [],
+        run: null
+      };
+
+      // Particules d'arrière-plan pour le Hub
+      for (let i = 0; i < 65; i++) {
+        appState.bgParticles.push({
+          x: rand(0, width),
+          y: rand(0, height),
+          r: rand(1, 3.2),
+          vx: rand(-18, 18),
+          vy: rand(-35, -10),
+          color: Math.random() > 0.35 ? '#22d3ee' : '#f59e0b',
+          alpha: rand(0.2, 0.8)
+        });
+      }
+
+      // Entrées clavier & souris
+      const input = {
+        keys: {},
+        mouseX: width / 2,
+        mouseY: height / 2,
+        mouseDown: false
+      };
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        input.keys[k] = true;
+
+        if (e.key === 'Escape') {
+          if (appState.mode === 'PLAYING') pauseGame();
+          else if (appState.mode === 'PAUSED') resumeGame();
+        }
+        if (appState.mode === 'PLAYING') {
+          if (k === ' ') {
+            e.preventDefault();
+            triggerPlayerSkill();
+          }
+          if (k === 'shift') {
+            triggerPlayerDash();
+          }
+          if (k === 'e' || k === 'f') {
+            interactWithRoomObject();
+          }
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        input.keys[e.key.toLowerCase()] = false;
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        input.mouseX = e.clientX;
+        input.mouseY = e.clientY;
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        sound.init();
+        if (appState.mode !== 'PLAYING') return;
+        if (e.button === 0) {
+          input.mouseDown = true;
+          interactWithRoomObject(true);
+        } else if (e.button === 2) {
+          triggerPlayerSkill();
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 0) input.mouseDown = false;
+      });
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      /* =========================================================================
+         7. INITIALISATION D'UNE RUN
+         ========================================================================= */
+      function startNewRun() {
+        sound.init();
+        const cls = CLASSES.find(c => c.id === saveData.selectedClass) || CLASSES[0];
+        const upg = saveData.upgrades;
+
+        const maxHp = Math.round(cls.hp + upg.maxHp * 15);
+        const maxShield = cls.shield || 0;
+
+        const player = {
+          classDef: cls,
+          x: 0,
+          y: 0,
+          radius: 18,
+          angle: 0,
+          hp: maxHp,
+          maxHp: maxHp,
+          shield: maxShield,
+          maxShield: maxShield,
+          speed: cls.speed * (1 + upg.speed * 0.04),
+          damage: cls.damage * (1 + upg.damage * 0.08),
+          attackRate: cls.attackRate,
+          critChance: cls.critChance + upg.crit * 0.03,
+          critMult: 1.85,
+          cdrMult: 1.0,
+          attackCooldown: 0,
+          skillCooldown: 0,
+          dashCooldown: 0,
+          dashTimer: 0,
+          dashVx: 0,
+          dashVy: 0,
+          invulnTimer: 0,
+          stealthTimer: 0,
+          orbitalAngle: 0,
+          relics: [],
+          maxRelics: 5 + upg.relicSlots,
+          mods: {
+            multishot: 0,
+            lightning: 0,
+            lifeOnKill: 0,
+            orbitals: 0,
+            ricochet: 0,
+            fireAura: 0,
+            critExplosion: false,
+            revive: 0
+          },
+          heal(amount) {
+            this.hp = Math.min(this.maxHp, this.hp + Math.round(amount));
+          }
+        };
+
+        const floorGraph = generateFloorGraph(1);
+
+        appState.run = {
+          player,
+          floor: floorGraph,
+          projectiles: [],
+          enemyProjectiles: [],
+          particles: [],
+          floatingTexts: [],
+          aoeZones: [],
+          gold: 25,
+          etherEarned: 0,
+          xp: 0,
+          xpToNext: 100,
+          level: 1,
+          kills: 0,
+          damageDealt: 0,
+          rerollCost: 25,
+          screenShake: 0,
+          portalExit: null, // Portail vers l'étage suivant après le Boss
+          auraTickTimer: 0
+        };
+
+        saveData.stats.runsPlayed += 1;
+        persistSave();
+
+        // Transition UI
+        document.getElementById('screenHub').classList.add('hidden');
+        document.getElementById('hudContainer').classList.remove('hidden');
+        document.getElementById('btnPauseHud').classList.remove('hidden');
+        document.getElementById('bossHudWrapper').classList.add('hidden');
+
+        appState.mode = 'PLAYING';
+        updateHud();
+        renderMinimap();
+        showToast(`Strate 1 : L'exploration commence !`);
+      }
+
+      /* =========================================================================
+         8. LOGIQUE DE SALLES, ENNEMIS & BOSSES
+         ========================================================================= */
+      function getCurrentRoom() {
+        return appState.run.floor.rooms.get(appState.run.floor.currentKey);
+      }
+
+      function spawnEnemiesForRoom(room, floorNum) {
+        room.enemies = [];
+        const scale = 1 + (floorNum - 1) * 0.35;
+
+        if (room.type === 'boss') {
+          const bossName = BOSS_NAMES[(floorNum - 1) % BOSS_NAMES.length];
+          room.enemies.push({
+            id: 'boss',
+            name: bossName,
+            isBoss: true,
+            x: 0,
+            y: -140,
+            radius: 44,
+            hp: Math.round(680 * scale),
+            maxHp: Math.round(680 * scale),
+            speed: 95 + floorNum * 5,
+            damage: Math.round(22 * scale),
+            color: '#f43f5e',
+            aiTimer: 1.8,
+            patternIdx: 0,
+            stunTimer: 0,
+            burnTimer: 0,
+            hitFlash: 0
+          });
+          document.getElementById('bossHudWrapper').classList.remove('hidden');
+          document.getElementById('bossNameHud').textContent = bossName;
+          return;
+        }
+
+        const isElite = room.type === 'elite';
+        const count = isElite ? 3 + Math.min(3, floorNum) : randInt(3, 5 + Math.min(4, floorNum));
+
+        const types = ['stalker', 'sentinel', 'summoner', 'colossus'];
+        for (let i = 0; i < count; i++) {
+          const t = types[randInt(0, floorNum === 1 ? 2 : 3)];
+          const eliteMult = isElite && i === 0 ? 1.85 : 1.0;
+
+          let ex, ey;
+          do {
+            ex = rand(-ROOM_W / 2 + 110, ROOM_W / 2 - 110);
+            ey = rand(-ROOM_H / 2 + 110, ROOM_H / 2 - 110);
+          } while (dist(ex, ey, appState.run.player.x, appState.run.player.y) < 230);
+
+          const baseStats = {
+            stalker: { hp: 52, speed: 175, radius: 16, damage: 14, color: '#fb7185' },
+            sentinel: { hp: 46, speed: 105, radius: 17, damage: 13, color: '#38bdf8' },
+            summoner: { hp: 62, speed: 85, radius: 19, damage: 12, color: '#c084fc' },
+            colossus: { hp: 125, speed: 68, radius: 26, damage: 22, color: '#f59e0b' }
+          }[t];
+
+          room.enemies.push({
+            id: t,
+            isElite: isElite && i === 0,
+            x: ex,
+            y: ey,
+            radius: baseStats.radius * (isElite && i === 0 ? 1.3 : 1),
+            hp: Math.round(baseStats.hp * scale * eliteMult),
+            maxHp: Math.round(baseStats.hp * scale * eliteMult),
+            speed: baseStats.speed,
+            damage: Math.round(baseStats.damage * scale),
+            color: baseStats.color,
+            aiTimer: rand(0.6, 1.8),
+            telegraphTimer: 0,
+            dashVx: 0,
+            dashVy: 0,
+            stunTimer: 0,
+            burnTimer: 0,
+            hitFlash: 0
+          });
+        }
+      }
+
+      function enterRoom(nx, ny, entryDir) {
+        const floor = appState.run.floor;
+        const newKey = `${nx},${ny}`;
+        const room = floor.rooms.get(newKey);
+        if (!room) return;
+
+        floor.currentKey = newKey;
+        const p = appState.run.player;
+
+        // Positionner le joueur près de la porte d'entrée opposée
+        if (entryDir === 'N') { p.x = 0; p.y = ROOM_H / 2 - 65; }
+        else if (entryDir === 'S') { p.x = 0; p.y = -ROOM_H / 2 + 65; }
+        else if (entryDir === 'E') { p.x = -ROOM_W / 2 + 65; p.y = 0; }
+        else if (entryDir === 'W') { p.x = ROOM_W / 2 - 65; p.y = 0; }
+
+        // Nettoyer projectiles & zones de la salle précédente
+        appState.run.projectiles = [];
+        appState.run.enemyProjectiles = [];
+        appState.run.aoeZones = [];
+        appState.run.portalExit = null;
+        document.getElementById('bossHudWrapper').classList.add('hidden');
+
+        // Régénération partielle du bouclier entre salles
+        if (p.maxShield > 0) {
+          p.shield = Math.min(p.maxShield, p.shield + Math.round(p.maxShield * 0.5));
+        }
+
+        if (!room.visited) {
+          room.visited = true;
+          if (!room.cleared) {
+            spawnEnemiesForRoom(room, floor.floorNum);
+          }
+        }
+
+        const roomLabels = {
+          start: 'Point d’Ancrage',
+          combat: 'Chambre Hostile',
+          elite: '⚠️ Chambre d’Élite',
+          treasure: '✨ Chambre au Trésor',
+          merchant: '⚖️ Marchand Errant',
+          shrine: '🕯️ Autel du Destin',
+          boss: '💀 Sanctuaire du Gardien'
+        };
+        document.getElementById('hudRoomType').textContent = roomLabels[room.type] || 'Salle';
+        updateHud();
+        renderMinimap();
+      }
+
+      /* =========================================================================
+         9. ACTIONS DU JOUEUR (ATTAQUE, COMPÉTENCE, DASH, INTERACTION)
+         ========================================================================= */
+      function getAimAngle() {
+        const p = appState.run.player;
+        const screenPlayerX = width / 2 + p.x;
+        const screenPlayerY = height / 2 + p.y;
+        return Math.atan2(input.mouseY - screenPlayerY, input.mouseX - screenPlayerX);
+      }
+
+      function performPlayerAttack() {
+        const run = appState.run;
+        const p = run.player;
+        if (p.attackCooldown > 0) return;
+
+        p.attackCooldown = 1 / p.attackRate;
+        const baseAngle = getAimAngle();
+        const count = 1 + p.mods.multishot;
+        const spread = 0.14;
+
+        if (p.classDef.attackType === 'melee_arc') {
+          sound.playSlash();
+          // Onde de lame en croissant qui avance sur courte/moyenne distance
+          for (let i = 0; i < count; i++) {
+            const angle = baseAngle + (i - (count - 1) / 2) * spread;
+            run.projectiles.push({
+              x: p.x + Math.cos(angle) * 28,
+              y: p.y + Math.sin(angle) * 28,
+              vx: Math.cos(angle) * 560,
+              vy: Math.sin(angle) * 560,
+              radius: 26,
+              life: 0.28,
+              maxLife: 0.28,
+              damage: p.damage,
+              color: p.classDef.color,
+              type: 'slash',
+              pierce: 99,
+              hitList: new Set(),
+              ricochetsLeft: p.mods.ricochet
+            });
+          }
+        } else if (p.classDef.attackType === 'rapid_daggers') {
+          sound.playShoot();
+          for (let i = 0; i < count; i++) {
+            const angle = baseAngle + (i - (count - 1) / 2) * (spread * 0.85) + rand(-0.03, 0.03);
+            run.projectiles.push({
+              x: p.x + Math.cos(angle) * 20,
+              y: p.y + Math.sin(angle) * 20,
+              vx: Math.cos(angle) * 820,
+              vy: Math.sin(angle) * 820,
+              radius: 7,
+              life: 0.9,
+              maxLife: 0.9,
+              damage: p.damage,
+              color: p.classDef.color,
+              type: 'dagger',
+              pierce: 1,
+              hitList: new Set(),
+              ricochetsLeft: p.mods.ricochet
+            });
+          }
+        } else {
+          // Architecte Runique : Orbes explosifs
+          sound.playArcaneBlast();
+          for (let i = 0; i < count; i++) {
+            const angle = baseAngle + (i - (count - 1) / 2) * spread;
+            run.projectiles.push({
+              x: p.x + Math.cos(angle) * 24,
+              y: p.y + Math.sin(angle) * 24,
+              vx: Math.cos(angle) * 470,
+              vy: Math.sin(angle) * 470,
+              radius: 13,
+              life: 1.25,
+              maxLife: 1.25,
+              damage: p.damage,
+              color: p.classDef.color,
+              type: 'orb',
+              aoeRadius: 75,
+              pierce: 1,
+              hitList: new Set(),
+              ricochetsLeft: p.mods.ricochet
+            });
+          }
+        }
+      }
+
+      function triggerPlayerSkill() {
+        const run = appState.run;
+        const p = run.player;
+        if (p.skillCooldown > 0) return;
+
+        p.skillCooldown = p.classDef.skillCooldown * p.cdrMult;
+        const angle = getAimAngle();
+        const room = getCurrentRoom();
+
+        if (p.classDef.id === 'vanguard') {
+          // Ruée Flamboyante
+          sound.playArcaneBlast();
+          p.dashTimer = 0.24;
+          p.invulnTimer = 0.45;
+          p.dashVx = Math.cos(angle) * 880;
+          p.dashVy = Math.sin(angle) * 880;
+          run.screenShake = 8;
+
+          // Explosion au départ et à l'arrivée
+          spawnBurstParticles(p.x, p.y, '#f59e0b', 24);
+          room.enemies.forEach(e => {
+            if (dist(p.x, p.y, e.x, e.y) < 170) {
+              damageEnemy(e, p.damage * 1.8, false);
+              e.stunTimer = 1.6;
+              e.burnTimer = 3.0;
+            }
+          });
+        } else if (p.classDef.id === 'voidwalker') {
+          // Téléportation d'ombre + salve de 8 dagues
+          sound.playDash();
+          spawnBurstParticles(p.x, p.y, '#22d3ee', 20);
+          const targetX = clamp(input.mouseX - width / 2, -ROOM_W / 2 + 40, ROOM_W / 2 - 40);
+          const targetY = clamp(input.mouseY - height / 2, -ROOM_H / 2 + 40, ROOM_H / 2 - 40);
+          p.x = targetX;
+          p.y = targetY;
+          p.invulnTimer = 0.6;
+          p.stealthTimer = 1.5;
+          spawnBurstParticles(p.x, p.y, '#22d3ee', 25);
+
+          for (let i = 0; i < 8; i++) {
+            const a = (Math.PI * 2 * i) / 8;
+            run.projectiles.push({
+              x: p.x,
+              y: p.y,
+              vx: Math.cos(a) * 760,
+              vy: Math.sin(a) * 760,
+              radius: 8,
+              life: 0.75,
+              maxLife: 0.75,
+              damage: p.damage * 1.25,
+              color: '#67e8f9',
+              type: 'dagger',
+              pierce: 2,
+              hitList: new Set(),
+              ricochetsLeft: 1
+            });
+          }
+        } else if (p.classDef.id === 'architect') {
+          // Onde de choc gravitationnelle
+          sound.playArcaneBlast();
+          run.screenShake = 11;
+          run.aoeZones.push({
+            x: p.x,
+            y: p.y,
+            radius: 210,
+            life: 0.45,
+            maxLife: 0.45,
+            color: '#c084fc',
+            isPlayerWave: true
+          });
+
+          // Détruit les projectiles ennemis proches et repousse les ennemis
+          run.enemyProjectiles = run.enemyProjectiles.filter(ep => dist(p.x, p.y, ep.x, ep.y) > 220);
+          room.enemies.forEach(e => {
+            const d = dist(p.x, p.y, e.x, e.y);
+            if (d < 220) {
+              damageEnemy(e, p.damage * 2.1, false);
+              const pushAngle = Math.atan2(e.y - p.y, e.x - p.x);
+              e.x = clamp(e.x + Math.cos(pushAngle) * 110, -ROOM_W / 2 + 40, ROOM_W / 2 - 40);
+              e.y = clamp(e.y + Math.sin(pushAngle) * 110, -ROOM_H / 2 + 40, ROOM_H / 2 - 40);
+              e.stunTimer = 1.4;
+            }
+          });
+        }
+      }
+
+      function triggerPlayerDash() {
+        const p = appState.run.player;
+        if (p.dashCooldown > 0 || p.dashTimer > 0) return;
+
+        sound.playDash();
+        p.dashCooldown = 1.6 * p.cdrMult;
+        p.dashTimer = 0.17;
+        p.invulnTimer = 0.26;
+
+        let mx = 0, my = 0;
+        if (input.keys['z'] || input.keys['w'] || input.keys['arrowup']) my -= 1;
+        if (input.keys['s'] || input.keys['arrowdown']) my += 1;
+        if (input.keys['q'] || input.keys['a'] || input.keys['arrowleft']) mx -= 1;
+        if (input.keys['d'] || input.keys['arrowright']) mx += 1;
+
+        const angle = (mx === 0 && my === 0) ? getAimAngle() : Math.atan2(my, mx);
+        p.dashVx = Math.cos(angle) * 760;
+        p.dashVy = Math.sin(angle) * 760;
+        spawnBurstParticles(p.x, p.y, '#94a3b8', 12);
+      }
+
+      function interactWithRoomObject(fromClick = false) {
+        const run = appState.run;
+        const p = run.player;
+        const room = getCurrentRoom();
+
+        // 1. Coffre au trésor
+        for (const chest of room.chests) {
+          if (!chest.opened && dist(p.x, p.y, chest.x, chest.y) < 75) {
+            chest.opened = true;
+            sound.playLevelUp();
+            spawnBurstParticles(chest.x, chest.y, '#fbbf24', 30);
+            openLootSelection('COFFRE DU VOILE', 'Vous avez ouvert un reliquaire ancien !');
+            return;
+          }
+        }
+
+        // 2. Marchand ou Autel
+        if (room.interactable && dist(p.x, p.y, room.interactable.x, room.interactable.y) < 85) {
+          if (room.interactable.type === 'merchant') {
+            openMerchantModal();
+            return;
+          } else if (room.interactable.type === 'shrine' && !room.interactable.used) {
+            openShrineModal(room.interactable);
+            return;
+          }
+        }
+
+        // 3. Portail de changement d'étage après le Boss
+        if (run.portalExit && dist(p.x, p.y, run.portalExit.x, run.portalExit.y) < 75) {
+          advanceToNextFloor();
+        }
+      }
+
+      function advanceToNextFloor() {
+        const run = appState.run;
+        const nextFloorNum = run.floor.floorNum + 1;
+        sound.playLevelUp();
+
+        if (nextFloorNum > saveData.stats.bestFloor) {
+          saveData.stats.bestFloor = nextFloorNum;
+          persistSave();
+        }
+
+        run.floor = generateFloorGraph(nextFloorNum);
+        run.player.x = 0;
+        run.player.y = 0;
+        run.portalExit = null;
+        run.projectiles = [];
+        run.enemyProjectiles = [];
+        run.aoeZones = [];
+
+        document.getElementById('hudFloor').textContent = nextFloorNum;
+        document.getElementById('hudRoomType').textContent = 'Point d’Ancrage';
+        updateHud();
+        renderMinimap();
+        showToast(`Descente vers la Strate ${nextFloorNum} !`);
+      }
+
+      /* =========================================================================
+         10. SYSTÈME DE DÉGÂTS, BUTIN & SYNERGIES
+         ========================================================================= */
+      function damageEnemy(enemy, rawDamage, allowCrit = true) {
+        const run = appState.run;
+        const p = run.player;
+
+        const isCrit = allowCrit && Math.random() < p.critChance;
+        const finalDmg = Math.round(rawDamage * (isCrit ? p.critMult : 1));
+
+        enemy.hp -= finalDmg;
+        enemy.hitFlash = 0.1;
+        run.damageDealt += finalDmg;
+
+        sound.playHit(isCrit);
+        spawnFloatingText(
+          enemy.x + rand(-12, 12),
+          enemy.y - enemy.radius - 6,
+          isCrit ? `${finalDmg}!` : `${finalDmg}`,
+          isCrit ? '#fbbf24' : '#f8fafc',
+          isCrit ? 18 : 13
+        );
+
+        // Synergie : Explosion sur coup critique
+        if (isCrit && p.mods.critExplosion) {
+          run.aoeZones.push({ x: enemy.x, y: enemy.y, radius: 75, life: 0.25, maxLife: 0.25, color: '#f97316', isPlayerWave: true });
+          getCurrentRoom().enemies.forEach(other => {
+            if (other !== enemy && dist(enemy.x, enemy.y, other.x, other.y) < 75) {
+              other.hp -= Math.round(finalDmg * 0.45);
+              other.hitFlash = 0.08;
+            }
+          });
+        }
+
+        // Synergie : Chaîne d'éclairs
+        if (p.mods.lightning > 0 && Math.random() < p.mods.lightning) {
+          const room = getCurrentRoom();
+          const target = room.enemies.find(other => other !== enemy && other.hp > 0 && dist(enemy.x, enemy.y, other.x, other.y) < 170);
+          if (target) {
+            const shockDmg = Math.round(finalDmg * 0.5);
+            target.hp -= shockDmg;
+            target.hitFlash = 0.1;
+            spawnFloatingText(target.x, target.y - 20, `⚡${shockDmg}`, '#38bdf8', 13);
+            // Particules d'arc électrique
+            for (let t = 0; t <= 5; t++) {
+              const lx = enemy.x + (target.x - enemy.x) * (t / 5) + rand(-8, 8);
+              const ly = enemy.y + (target.y - enemy.y) * (t / 5) + rand(-8, 8);
+              run.particles.push({ x: lx, y: ly, vx: 0, vy: 0, r: 3.5, life: 0.18, maxLife: 0.18, color: '#38bdf8' });
+            }
+          }
+        }
+      }
+
+      function handleEnemyDeath(enemy) {
+        const run = appState.run;
+        const p = run.player;
+        const room = getCurrentRoom();
+
+        run.kills += 1;
+        saveData.stats.totalKills += 1;
+        spawnBurstParticles(enemy.x, enemy.y, enemy.color, enemy.isBoss ? 55 : 18);
+
+        // Vol de vie sur élimination
+        if (p.mods.lifeOnKill > 0) {
+          p.heal(p.mods.lifeOnKill);
+        }
+
+        // Gain d'XP
+        const xpGain = enemy.isBoss ? 140 : (enemy.isElite ? 55 : 24);
+        gainXp(xpGain);
+
+        // Drop d'Or et d'Éclats d'Éther
+        const goldCount = enemy.isBoss ? 12 : (enemy.isElite ? 5 : randInt(1, 3));
+        for (let i = 0; i < goldCount; i++) {
+          room.pickups.push({
+            x: enemy.x + rand(-20, 20),
+            y: enemy.y + rand(-20, 20),
+            vx: rand(-90, 90),
+            vy: rand(-90, 90),
+            type: 'gold',
+            value: randInt(5, 11)
+          });
+        }
+
+        if (enemy.isBoss || enemy.isElite || Math.random() < 0.25) {
+          const etherBase = enemy.isBoss ? 28 : (enemy.isElite ? 10 : 3);
+          const etherTotal = Math.round(etherBase * (1 + saveData.upgrades.etherGain * 0.15));
+          room.pickups.push({
+            x: enemy.x,
+            y: enemy.y,
+            vx: rand(-60, 60),
+            vy: rand(-60, 60),
+            type: 'ether',
+            value: etherTotal
+          });
+        }
+
+        if (enemy.isBoss) {
+          saveData.stats.bossesDefeated += 1;
+          persistSave();
+          document.getElementById('bossHudWrapper').classList.add('hidden');
+          run.screenShake = 16;
+          // Faire apparaître un coffre légendaire et le portail vers l'étage suivant
+          room.chests.push({ x: -75, y: 0, opened: false, rarity: 'legendary' });
+          run.portalExit = { x: 85, y: 0, angle: 0 };
+          showToast('Gardien vaincu ! Récupérez votre récompense et empruntez le portail.');
+        }
+      }
+
+      function gainXp(amount) {
+        const run = appState.run;
+        run.xp += amount;
+        if (run.xp >= run.xpToNext) {
+          run.xp -= run.xpToNext;
+          run.level += 1;
+          run.xpToNext = Math.round(run.xpToNext * 1.32);
+          sound.playLevelUp();
+          openLootSelection(`NIVEAU ${run.level} ATTEINT`, 'Choisissez une bénédiction pour renforcer votre personnage.');
+        }
+      }
+
+      function damagePlayer(amount) {
+        const run = appState.run;
+        const p = run.player;
+        if (p.invulnTimer > 0) return;
+
+        p.invulnTimer = 0.65;
+        p.stealthTimer = 0;
+        run.screenShake = 10;
+        sound.playPlayerHurt();
+
+        let remaining = amount;
+        if (p.shield > 0) {
+          const absorbed = Math.min(p.shield, remaining);
+          p.shield -= absorbed;
+          remaining -= absorbed;
+          spawnFloatingText(p.x, p.y - 25, `-${absorbed} 🛡️`, '#38bdf8', 14);
+        }
+
+        if (remaining > 0) {
+          p.hp -= remaining;
+          spawnFloatingText(p.x, p.y - 35, `-${remaining}`, '#f43f5e', 16);
+        }
+
+        if (p.hp <= 0) {
+          if (p.mods.revive > 0) {
+            p.mods.revive -= 1;
+            p.hp = Math.round(p.maxHp * 0.6);
+            p.invulnTimer = 2.0;
+            sound.playLevelUp();
+            spawnBurstParticles(p.x, p.y, '#fbbf24', 50);
+            showToast('🦅 Le Cœur du Phénix vous ramène à la vie !');
+          } else {
+            triggerGameOver();
+          }
+        }
+        updateHud();
+      }
+
+      /* =========================================================================
+         11. BOUCLE DE MISE À JOUR PHYSIQUE & IA (60 FPS)
+         ========================================================================= */
+      function updateGame(dt) {
+        const run = appState.run;
+        const p = run.player;
+        const room = getCurrentRoom();
+
+        if (run.screenShake > 0) run.screenShake = Math.max(0, run.screenShake - dt * 35);
+
+        // Cooldowns joueur
+        if (p.attackCooldown > 0) p.attackCooldown -= dt;
+        if (p.skillCooldown > 0) p.skillCooldown -= dt;
+        if (p.dashCooldown > 0) p.dashCooldown -= dt;
+        if (p.invulnTimer > 0) p.invulnTimer -= dt;
+        if (p.stealthTimer > 0) p.stealthTimer -= dt;
+
+        // Attaque continue si clic gauche maintenu
+        if (input.mouseDown) {
+          performPlayerAttack();
+        }
+
+        // Déplacement joueur
+        p.angle = getAimAngle();
+        if (p.dashTimer > 0) {
+          p.dashTimer -= dt;
+          p.x += p.dashVx * dt;
+          p.y += p.dashVy * dt;
+        } else {
+          let mx = 0, my = 0;
+          if (input.keys['z'] || input.keys['w'] || input.keys['arrowup']) my -= 1;
+          if (input.keys['s'] || input.keys['arrowdown']) my += 1;
+          if (input.keys['q'] || input.keys['a'] || input.keys['arrowleft']) mx -= 1;
+          if (input.keys['d'] || input.keys['arrowright']) mx += 1;
+
+          if (mx !== 0 || my !== 0) {
+            const len = Math.hypot(mx, my);
+            p.x += (mx / len) * p.speed * dt;
+            p.y += (my / len) * p.speed * dt;
+          }
+        }
+
+        // Collision joueur avec murs de la salle
+        const halfW = ROOM_W / 2 - p.radius - 14;
+        const halfH = ROOM_H / 2 - p.radius - 14;
+        p.x = clamp(p.x, -halfW, halfW);
+        p.y = clamp(p.y, -halfH, halfH);
+
+        // Collision joueur avec piliers/obstacles
+        for (const obs of room.obstacles) {
+          const d = dist(p.x, p.y, obs.x, obs.y);
+          const minDist = p.radius + obs.r;
+          if (d < minDist && d > 0) {
+            const push = (minDist - d) / d;
+            p.x += (p.x - obs.x) * push;
+            p.y += (p.y - obs.y) * push;
+          }
+        }
+
+        // Orbes orbitaux (Relique)
+        if (p.mods.orbitals > 0) {
+          p.orbitalAngle += dt * 3.4;
+          for (let i = 0; i < p.mods.orbitals; i++) {
+            const a = p.orbitalAngle + (Math.PI * 2 * i) / p.mods.orbitals;
+            const ox = p.x + Math.cos(a) * 58;
+            const oy = p.y + Math.sin(a) * 58;
+
+            // Bloque les projectiles ennemis
+            run.enemyProjectiles = run.enemyProjectiles.filter(ep => dist(ox, oy, ep.x, ep.y) > 16);
+
+            // Blesse les ennemis touchés
+            room.enemies.forEach(e => {
+              if (dist(ox, oy, e.x, e.y) < e.radius + 12 && (!e._orbHitCd || e._orbHitCd <= 0)) {
+                damageEnemy(e, p.damage * 0.65, true);
+                e._orbHitCd = 0.45;
+              }
+            });
+          }
+        }
+
+        // Aura de feu (Relique)
+        if (p.mods.fireAura > 0) {
+          run.auraTickTimer += dt;
+          if (run.auraTickTimer >= 0.5) {
+            run.auraTickTimer = 0;
+            room.enemies.forEach(e => {
+              if (dist(p.x, p.y, e.x, e.y) < 130) {
+                damageEnemy(e, p.mods.fireAura, false);
+              }
+            });
+          }
+        }
+
+        // Mise à jour des projectiles du joueur
+        for (let i = run.projectiles.length - 1; i >= 0; i--) {
+          const proj = run.projectiles[i];
+          proj.x += proj.vx * dt;
+          proj.y += proj.vy * dt;
+          proj.life -= dt;
+
+          let removeProj = proj.life <= 0 || Math.abs(proj.x) > ROOM_W / 2 - 10 || Math.abs(proj.y) > ROOM_H / 2 - 10;
+
+          // Collision obstacle
+          if (!removeProj && proj.type !== 'slash') {
+            for (const obs of room.obstacles) {
+              if (dist(proj.x, proj.y, obs.x, obs.y) < obs.r + proj.radius * 0.5) {
+                removeProj = true;
+                break;
+              }
+            }
+          }
+
+          // Collision ennemis
+          if (!removeProj) {
+            for (const enemy of room.enemies) {
+              if (enemy.hp <= 0 || proj.hitList.has(enemy)) continue;
+              if (dist(proj.x, proj.y, enemy.x, enemy.y) < enemy.radius + proj.radius) {
+                proj.hitList.add(enemy);
+                damageEnemy(enemy, proj.damage, true);
+
+                // Dégâts de zone (Architecte Runique)
+                if (proj.aoeRadius) {
+                  run.aoeZones.push({ x: proj.x, y: proj.y, radius: proj.aoeRadius, life: 0.22, maxLife: 0.22, color: proj.color, isPlayerWave: true });
+                  room.enemies.forEach(other => {
+                    if (other !== enemy && other.hp > 0 && dist(proj.x, proj.y, other.x, other.y) < proj.aoeRadius) {
+                      damageEnemy(other, proj.damage * 0.6, false);
+                    }
+                  });
+                }
+
+                // Ricochet vers un ennemi proche
+                if (proj.ricochetsLeft > 0) {
+                  const nextTarget = room.enemies.find(other => other !== enemy && other.hp > 0 && !proj.hitList.has(other) && dist(proj.x, proj.y, other.x, other.y) < 260);
+                  if (nextTarget) {
+                    proj.ricochetsLeft -= 1;
+                    const spd = Math.hypot(proj.vx, proj.vy);
+                    const na = Math.atan2(nextTarget.y - proj.y, nextTarget.x - proj.x);
+                    proj.vx = Math.cos(na) * spd;
+                    proj.vy = Math.sin(na) * spd;
+                    proj.life = Math.max(proj.life, 0.45);
+                    continue;
+                  }
+                }
+
+                proj.pierce -= 1;
+                if (proj.pierce <= 0) {
+                  removeProj = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (removeProj) {
+            spawnBurstParticles(proj.x, proj.y, proj.color, 5);
+            run.projectiles.splice(i, 1);
+          }
+        }
+
+        // Mise à jour des ennemis & IA
+        for (let i = room.enemies.length - 1; i >= 0; i--) {
+          const e = room.enemies[i];
+          if (e.hitFlash > 0) e.hitFlash -= dt;
+          if (e._orbHitCd > 0) e._orbHitCd -= dt;
+
+          if (e.burnTimer > 0) {
+            e.burnTimer -= dt;
+            e.hp -= p.damage * 0.4 * dt;
+          }
+
+          if (e.hp <= 0) {
+            handleEnemyDeath(e);
+            room.enemies.splice(i, 1);
+            continue;
+          }
+
+          if (e.stunTimer > 0) {
+            e.stunTimer -= dt;
+            continue;
+          }
+
+          const angleToPlayer = Math.atan2(p.y - e.y, p.x - e.x);
+          const distToPlayer = dist(e.x, e.y, p.x, p.y);
+          const playerVisible = p.stealthTimer <= 0;
+
+          if (e.isBoss) {
+            updateBossAI(e, dt, angleToPlayer, distToPlayer, playerVisible);
+          } else if (e.id === 'stalker') {
+            if (e.telegraphTimer > 0) {
+              e.telegraphTimer -= dt;
+              e.x += e.dashVx * dt;
+              e.y += e.dashVy * dt;
+            } else {
+              if (playerVisible) {
+                e.x += Math.cos(angleToPlayer) * e.speed * dt;
+                e.y += Math.sin(angleToPlayer) * e.speed * dt;
+              }
+              e.aiTimer -= dt;
+              if (e.aiTimer <= 0 && distToPlayer < 240 && playerVisible) {
+                e.aiTimer = 2.2;
+                e.telegraphTimer = 0.28;
+                e.dashVx = Math.cos(angleToPlayer) * 440;
+                e.dashVy = Math.sin(angleToPlayer) * 440;
+              }
+            }
+          } else if (e.id === 'sentinel') {
+            // Garde ses distances et tire
+            const moveDir = distToPlayer < 210 ? -1 : (distToPlayer > 330 ? 1 : 0);
+            e.x += Math.cos(angleToPlayer) * e.speed * moveDir * dt;
+            e.y += Math.sin(angleToPlayer) * e.speed * moveDir * dt;
+
+            e.aiTimer -= dt;
+            if (e.aiTimer <= 0 && playerVisible) {
+              e.aiTimer = 1.9;
+              for (let s = -1; s <= 1; s += 2) {
+                const sa = angleToPlayer + s * 0.14;
+                run.enemyProjectiles.push({
+                  x: e.x, y: e.y,
+                  vx: Math.cos(sa) * 320, vy: Math.sin(sa) * 320,
+                  radius: 7, life: 2.5, damage: e.damage, color: '#38bdf8'
+                });
+              }
+            }
+          } else if (e.id === 'summoner') {
+            e.x += Math.cos(angleToPlayer + 1.2) * e.speed * dt;
+            e.y += Math.sin(angleToPlayer + 1.2) * e.speed * dt;
+            e.aiTimer -= dt;
+            if (e.aiTimer <= 0 && playerVisible) {
+              e.aiTimer = 3.4;
+              // Crée une zone explosive sous le joueur
+              run.aoeZones.push({
+                x: p.x + rand(-30, 30),
+                y: p.y + rand(-30, 30),
+                radius: 72,
+                life: 1.15,
+                maxLife: 1.15,
+                color: '#c084fc',
+                isPlayerWave: false,
+                damage: e.damage,
+                triggered: false
+              });
+            }
+          } else if (e.id === 'colossus') {
+            if (playerVisible) {
+              e.x += Math.cos(angleToPlayer) * e.speed * dt;
+              e.y += Math.sin(angleToPlayer) * e.speed * dt;
+            }
+            e.aiTimer -= dt;
+            if (e.aiTimer <= 0 && playerVisible) {
+              e.aiTimer = 2.8;
+              // Salve circulaire de 8 projectiles
+              for (let k = 0; k < 8; k++) {
+                const a = (Math.PI * 2 * k) / 8;
+                run.enemyProjectiles.push({
+                  x: e.x, y: e.y,
+                  vx: Math.cos(a) * 250, vy: Math.sin(a) * 250,
+                  radius: 8, life: 2.4, damage: e.damage, color: '#f59e0b'
+                });
+              }
+            }
+          }
+
+          // Garder l'ennemi dans l'arène
+          e.x = clamp(e.x, -ROOM_W / 2 + e.radius + 16, ROOM_W / 2 - e.radius - 16);
+          e.y = clamp(e.y, -ROOM_H / 2 + e.radius + 16, ROOM_H / 2 - e.radius - 16);
+
+          // Contact direct avec le joueur
+          if (dist(e.x, e.y, p.x, p.y) < e.radius + p.radius) {
+            damagePlayer(e.damage);
+          }
+        }
+
+        // Vérifier si la salle vient d'être nettoyée
+        if (!room.cleared && room.enemies.length === 0) {
+          room.cleared = true;
+          sound.playRoomClear();
+          renderMinimap();
+          document.getElementById('roomClearHint').classList.remove('hidden');
+          setTimeout(() => document.getElementById('roomClearHint').classList.add('hidden'), 3500);
+        }
+
+        // Projectiles ennemis
+        for (let i = run.enemyProjectiles.length - 1; i >= 0; i--) {
+          const ep = run.enemyProjectiles[i];
+          ep.x += ep.vx * dt;
+          ep.y += ep.vy * dt;
+          ep.life -= dt;
+
+          let hitObs = false;
+          for (const obs of room.obstacles) {
+            if (dist(ep.x, ep.y, obs.x, obs.y) < obs.r) { hitObs = true; break; }
+          }
+
+          if (ep.life <= 0 || hitObs || Math.abs(ep.x) > ROOM_W / 2 || Math.abs(ep.y) > ROOM_H / 2) {
+            run.enemyProjectiles.splice(i, 1);
+            continue;
+          }
+
+          if (dist(ep.x, ep.y, p.x, p.y) < ep.radius + p.radius) {
+            damagePlayer(ep.damage);
+            run.enemyProjectiles.splice(i, 1);
+          }
+        }
+
+        // Zones AOE (Visuelles & Pièges ennemis)
+        for (let i = run.aoeZones.length - 1; i >= 0; i--) {
+          const z = run.aoeZones[i];
+          z.life -= dt;
+          if (!z.isPlayerWave && !z.triggered && z.life <= 0.15) {
+            z.triggered = true;
+            spawnBurstParticles(z.x, z.y, z.color, 18);
+            if (dist(z.x, z.y, p.x, p.y) < z.radius) {
+              damagePlayer(z.damage);
+            }
+          }
+          if (z.life <= 0) run.aoeZones.splice(i, 1);
+        }
+
+        // Ramassage des récompenses au sol (Or & Éther)
+        for (let i = room.pickups.length - 1; i >= 0; i--) {
+          const pk = room.pickups[i];
+          pk.x += pk.vx * dt;
+          pk.y += pk.vy * dt;
+          pk.vx *= 0.9;
+          pk.vy *= 0.9;
+
+          const d = dist(pk.x, pk.y, p.x, p.y);
+          if (d < 160) {
+            const pullAngle = Math.atan2(p.y - pk.y, p.x - pk.x);
+            pk.x += Math.cos(pullAngle) * 340 * dt;
+            pk.y += Math.sin(pullAngle) * 340 * dt;
+          }
+          if (d < p.radius + 14) {
+            if (pk.type === 'gold') {
+              run.gold += pk.value;
+              sound.playPickup(false);
+              spawnFloatingText(p.x, p.y - 24, `+${pk.value} Or`, '#fbbf24', 12);
+            } else {
+              run.etherEarned += pk.value;
+              saveData.etherShards += pk.value;
+              persistSave();
+              sound.playPickup(true);
+              spawnFloatingText(p.x, p.y - 28, `+${pk.value} ✦ Éther`, '#22d3ee', 13);
+            }
+            room.pickups.splice(i, 1);
+          }
+        }
+
+        // Navigation par les portails de salle une fois la salle nettoyée
+        if (room.cleared) {
+          const doorMargin = 48;
+          if (room.doors.N && p.y <= -halfH + 8 && Math.abs(p.x) < doorMargin) enterRoom(room.gx, room.gy - 1, 'N');
+          else if (room.doors.S && p.y >= halfH - 8 && Math.abs(p.x) < doorMargin) enterRoom(room.gx, room.gy + 1, 'S');
+          else if (room.doors.E && p.x >= halfW - 8 && Math.abs(p.y) < doorMargin) enterRoom(room.gx + 1, room.gy, 'E');
+          else if (room.doors.W && p.x <= -halfW + 8 && Math.abs(p.y) < doorMargin) enterRoom(room.gx - 1, room.gy, 'W');
+        }
+
+        if (run.portalExit) {
+          run.portalExit.angle += dt * 2.5;
+        }
+
+        // Particules & Textes flottants
+        updateEffects(dt);
+        updateHud();
+      }
+
+      function updateBossAI(boss, dt, angleToPlayer, distToPlayer, playerVisible) {
+        const run = appState.run;
+        // Mise à jour barre HUD Boss
+        document.getElementById('bossHpHudText').textContent = `${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}`;
+        document.getElementById('bossHpHudBar').style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
+
+        if (playerVisible && distToPlayer > 140) {
+          boss.x += Math.cos(angleToPlayer) * boss.speed * dt;
+          boss.y += Math.sin(angleToPlayer) * boss.speed * dt;
+        }
+
+        boss.aiTimer -= dt;
+        if (boss.aiTimer <= 0 && playerVisible) {
+          boss.patternIdx = (boss.patternIdx + 1) % 3;
+          if (boss.patternIdx === 0) {
+            // Pattern 1 : Nova en spirale de 14 projectiles
+            boss.aiTimer = 2.1;
+            const offset = rand(0, Math.PI);
+            for (let k = 0; k < 14; k++) {
+              const a = offset + (Math.PI * 2 * k) / 14;
+              run.enemyProjectiles.push({
+                x: boss.x, y: boss.y,
+                vx: Math.cos(a) * 275, vy: Math.sin(a) * 275,
+                radius: 9, life: 3.2, damage: boss.damage, color: '#f43f5e'
+              });
+            }
+          } else if (boss.patternIdx === 1) {
+            // Pattern 2 : Éventail ciblé rapide
+            boss.aiTimer = 1.7;
+            for (let s = -2; s <= 2; s++) {
+              const a = angleToPlayer + s * 0.16;
+              run.enemyProjectiles.push({
+                x: boss.x, y: boss.y,
+                vx: Math.cos(a) * 380, vy: Math.sin(a) * 380,
+                radius: 8, life: 2.5, damage: boss.damage, color: '#fb923c'
+              });
+            }
+          } else {
+            // Pattern 3 : 3 zones gravitationnelles autour du joueur
+            boss.aiTimer = 2.4;
+            for (let z = 0; z < 3; z++) {
+              run.aoeZones.push({
+                x: run.player.x + rand(-110, 110),
+                y: run.player.y + rand(-110, 110),
+                radius: 82,
+                life: 1.25,
+                maxLife: 1.25,
+                color: '#e11d48',
+                isPlayerWave: false,
+                damage: Math.round(boss.damage * 1.2),
+                triggered: false
+              });
+            }
+          }
+        }
+      }
+
+      function spawnBurstParticles(x, y, color, count) {
+        if (!appState.run) return;
+        for (let i = 0; i < count; i++) {
+          const a = rand(0, Math.PI * 2);
+          const spd = rand(40, 240);
+          appState.run.particles.push({
+            x, y,
+            vx: Math.cos(a) * spd,
+            vy: Math.sin(a) * spd,
+            r: rand(2, 5),
+            life: rand(0.25, 0.55),
+            maxLife: 0.55,
+            color
+          });
+        }
+      }
+
+      function spawnFloatingText(x, y, text, color, size = 14) {
+        if (!appState.run) return;
+        appState.run.floatingTexts.push({
+          x, y, text, color, size,
+          vy: -42,
+          life: 0.75,
+          maxLife: 0.75
+        });
+      }
+
+      function updateEffects(dt) {
+        const run = appState.run;
+        for (let i = run.particles.length - 1; i >= 0; i--) {
+          const pt = run.particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.vx *= 0.94;
+          pt.vy *= 0.94;
+          pt.life -= dt;
+          if (pt.life <= 0) run.particles.splice(i, 1);
+        }
+        for (let i = run.floatingTexts.length - 1; i >= 0; i--) {
+          const ft = run.floatingTexts[i];
+          ft.y += ft.vy * dt;
+          ft.life -= dt;
+          if (ft.life <= 0) run.floatingTexts.splice(i, 1);
+        }
+      }
+
+      /* =========================================================================
+         12. RENDU GRAPHIQUE CANVAS 2D (ARÈNE, ÉCLAIRAGES, ENTITÉS, FX)
+         ========================================================================= */
+      function renderScene(dt) {
+        ctx.fillStyle = '#07080d';
+        ctx.fillRect(0, 0, width, height);
+
+        if (appState.mode === 'HUB' || !appState.run) {
+          renderHubBackground(dt);
+          return;
+        }
+
+        const run = appState.run;
+        const p = run.player;
+        const room = getCurrentRoom();
+
+        ctx.save();
+        // Centrer la caméra sur l'arène avec léger tremblement d'impact
+        const shakeX = run.screenShake > 0 ? rand(-run.screenShake, run.screenShake) : 0;
+        const shakeY = run.screenShake > 0 ? rand(-run.screenShake, run.screenShake) : 0;
+        ctx.translate(width / 2 + shakeX, height / 2 + shakeY);
+
+        // Sol de la salle + Grille technologique subtile
+        const gradFloor = ctx.createRadialGradient(0, 0, 50, 0, 0, ROOM_W * 0.65);
+        gradFloor.addColorStop(0, '#111626');
+        gradFloor.addColorStop(1, '#090c15');
+        ctx.fillStyle = gradFloor;
+        ctx.beginPath();
+        ctx.roundRect(-ROOM_W / 2, -ROOM_H / 2, ROOM_W, ROOM_H, 24);
+        ctx.fill();
+
+        // Lignes de grille
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
+        ctx.lineWidth = 1;
+        const step = 56;
+        for (let gx = -ROOM_W / 2 + step; gx < ROOM_W / 2; gx += step) {
+          ctx.beginPath(); ctx.moveTo(gx, -ROOM_H / 2); ctx.lineTo(gx, ROOM_H / 2); ctx.stroke();
+        }
+        for (let gy = -ROOM_H / 2 + step; gy < ROOM_H / 2; gy += step) {
+          ctx.beginPath(); ctx.moveTo(-ROOM_W / 2, gy); ctx.lineTo(ROOM_W / 2, gy); ctx.stroke();
+        }
+
+        // Bordure énergétique de la salle
+        ctx.strokeStyle = room.cleared ? 'rgba(34, 211, 238, 0.45)' : 'rgba(244, 63, 94, 0.55)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.roundRect(-ROOM_W / 2, -ROOM_H / 2, ROOM_W, ROOM_H, 24);
+        ctx.stroke();
+
+        // Dessin des Portails de direction (N, S, E, W)
+        drawRoomDoors(room);
+
+        // Zones AOE au sol
+        for (const z of run.aoeZones) {
+          const progress = 1 - z.life / z.maxLife;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(z.x, z.y, z.radius * (z.isPlayerWave ? progress : 1), 0, Math.PI * 2);
+          ctx.fillStyle = z.isPlayerWave ? 'rgba(192, 132, 252, 0.18)' : 'rgba(225, 29, 72, 0.16)';
+          ctx.fill();
+          ctx.strokeStyle = z.color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          if (!z.isPlayerWave) {
+            ctx.beginPath();
+            ctx.arc(z.x, z.y, z.radius * progress, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Portail de changement d'étage après Boss
+        if (run.portalExit) {
+          const pe = run.portalExit;
+          ctx.save();
+          ctx.translate(pe.x, pe.y);
+          ctx.rotate(pe.angle);
+          const pGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, 44);
+          pGrad.addColorStop(0, '#fef08a');
+          pGrad.addColorStop(0.5, '#f59e0b');
+          pGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+          ctx.fillStyle = pGrad;
+          ctx.beginPath(); ctx.arc(0, 0, 44, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-22, -22, 44, 44);
+          ctx.restore();
+
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 12px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('STRATE SUIVANTE [E]', pe.x, pe.y - 50);
+        }
+
+        // Coffres & Événements interactifs
+        for (const chest of room.chests) {
+          drawChest(chest);
+        }
+        if (room.interactable) {
+          drawInteractable(room.interactable);
+        }
+
+        // Piliers / Obstacles
+        for (const obs of room.obstacles) {
+          ctx.save();
+          ctx.fillStyle = '#1e293b';
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+          ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r * 0.45, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
+        // Récompenses au sol (Or & Éclats d'Éther)
+        for (const pk of room.pickups) {
+          ctx.save();
+          ctx.fillStyle = pk.type === 'gold' ? '#fbbf24' : '#22d3ee';
+          ctx.shadowColor = pk.type === 'gold' ? '#f59e0b' : '#22d3ee';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          if (pk.type === 'gold') {
+            ctx.arc(pk.x, pk.y, 6, 0, Math.PI * 2);
+          } else {
+            ctx.moveTo(pk.x, pk.y - 8);
+            ctx.lineTo(pk.x + 6, pk.y);
+            ctx.lineTo(pk.x, pk.y + 8);
+            ctx.lineTo(pk.x - 6, pk.y);
+            ctx.closePath();
+          }
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Ennemis
+        for (const e of room.enemies) {
+          drawEnemy(e);
+        }
+
+        // Aura de feu du joueur
+        if (p.mods.fireAura > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 130, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(249, 115, 22, 0.25)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Joueur
+        drawPlayer(p);
+
+        // Orbes orbitaux du joueur
+        if (p.mods.orbitals > 0) {
+          for (let i = 0; i < p.mods.orbitals; i++) {
+            const a = p.orbitalAngle + (Math.PI * 2 * i) / p.mods.orbitals;
+            const ox = p.x + Math.cos(a) * 58;
+            const oy = p.y + Math.sin(a) * 58;
+            ctx.save();
+            ctx.fillStyle = '#38bdf8';
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(ox, oy, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        // Projectiles du joueur
+        for (const proj of run.projectiles) {
+          ctx.save();
+          ctx.translate(proj.x, proj.y);
+          ctx.rotate(Math.atan2(proj.vy, proj.vx));
+          ctx.fillStyle = proj.color;
+          ctx.shadowColor = proj.color;
+          ctx.shadowBlur = 12;
+
+          if (proj.type === 'slash') {
+            ctx.beginPath();
+            ctx.arc(0, 0, proj.radius, -Math.PI * 0.42, Math.PI * 0.42);
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = proj.color;
+            ctx.stroke();
+          } else if (proj.type === 'dagger') {
+            ctx.beginPath();
+            ctx.moveTo(12, 0); ctx.lineTo(-8, -5); ctx.lineTo(-4, 0); ctx.lineTo(-8, 5);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.beginPath(); ctx.arc(0, 0, proj.radius, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Projectiles ennemis
+        for (const ep of run.enemyProjectiles) {
+          ctx.save();
+          ctx.fillStyle = ep.color;
+          ctx.shadowColor = ep.color;
+          ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(ep.x, ep.y, ep.radius, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(ep.x, ep.y, ep.radius * 0.4, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
+        // Particules
+        for (const pt of run.particles) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+          ctx.fillStyle = pt.color;
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+
+        // Textes flottants (Dégâts, Soins, Butin)
+        for (const ft of run.floatingTexts) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+          ctx.fillStyle = ft.color;
+          ctx.font = `bold ${ft.size}px "JetBrains Mono", monospace`;
+          ctx.textAlign = 'center';
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function renderHubBackground(dt) {
+        const grad = ctx.createRadialGradient(width / 2, height * 0.35, 40, width / 2, height / 2, width * 0.7);
+        grad.addColorStop(0, '#13192e');
+        grad.addColorStop(1, '#07080d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        for (const pt of appState.bgParticles) {
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          if (pt.y < -10) { pt.y = height + 10; pt.x = rand(0, width); }
+          if (pt.x < -10) pt.x = width + 10;
+          if (pt.x > width + 10) pt.x = -10;
+
+          ctx.save();
+          ctx.globalAlpha = pt.alpha;
+          ctx.fillStyle = pt.color;
+          ctx.shadowColor = pt.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawRoomDoors(room) {
+        const doorColor = room.cleared ? '#22d3ee' : '#ef4444';
+        ctx.save();
+        ctx.fillStyle = doorColor;
+        ctx.shadowColor = doorColor;
+        ctx.shadowBlur = room.cleared ? 16 : 6;
+
+        if (room.doors.N) ctx.fillRect(-44, -ROOM_H / 2 - 4, 88, 10);
+        if (room.doors.S) ctx.fillRect(-44, ROOM_H / 2 - 6, 88, 10);
+        if (room.doors.W) ctx.fillRect(-ROOM_W / 2 - 4, -44, 10, 88);
+        if (room.doors.E) ctx.fillRect(ROOM_W / 2 - 6, -44, 10, 88);
+        ctx.restore();
+      }
+
+      function drawPlayer(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        if (p.stealthTimer > 0) ctx.globalAlpha = 0.42;
+
+        // Halo sous le personnage
+        const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, 34);
+        glow.addColorStop(0, p.classDef.color + '55');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(0, 0, 34, 0, Math.PI * 2); ctx.fill();
+
+        // Bouclier actif
+        if (p.shield > 0) {
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, 0, p.radius + 6, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        // Corps orienté vers la souris
+        ctx.rotate(p.angle);
+        ctx.fillStyle = p.invulnTimer > 0 && Math.floor(p.invulnTimer * 20) % 2 === 0 ? '#ffffff' : p.classDef.color;
+        ctx.beginPath();
+        ctx.moveTo(p.radius + 5, 0);
+        ctx.lineTo(-p.radius, -p.radius * 0.85);
+        ctx.lineTo(-p.radius * 0.55, 0);
+        ctx.lineTo(-p.radius, p.radius * 0.85);
+        ctx.closePath();
+        ctx.fill();
+
+        // Noyau central
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      function drawEnemy(e) {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+
+        // Aura Élite ou Boss
+        if (e.isBoss || e.isElite) {
+          ctx.strokeStyle = e.isBoss ? 'rgba(244, 63, 94, 0.5)' : 'rgba(251, 191, 36, 0.55)';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, e.radius + 8, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        ctx.fillStyle = e.hitFlash > 0 ? '#ffffff' : e.color;
+        ctx.shadowColor = e.color;
+        ctx.shadowBlur = 10;
+
+        ctx.beginPath();
+        if (e.id === 'colossus' || e.isBoss) {
+          // Octogone massif
+          const sides = 8;
+          for (let i = 0; i < sides; i++) {
+            const a = (Math.PI * 2 * i) / sides;
+            const px = Math.cos(a) * e.radius;
+            const py = Math.sin(a) * e.radius;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        } else if (e.id === 'sentinel') {
+          // Losange
+          ctx.moveTo(0, -e.radius); ctx.lineTo(e.radius, 0); ctx.lineTo(0, e.radius); ctx.lineTo(-e.radius, 0);
+          ctx.closePath();
+        } else {
+          ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+
+        // Indicateur d'étourdissement
+        if (e.stunTimer > 0) {
+          ctx.strokeStyle = '#fde047';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, -e.radius - 10, 6, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        // Petite barre de vie au-dessus des ennemis standards
+        if (!e.isBoss && e.hp < e.maxHp) {
+          const bw = e.radius * 2;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-bw / 2, -e.radius - 12, bw, 4);
+          ctx.fillStyle = e.color;
+          ctx.fillRect(-bw / 2, -e.radius - 12, bw * Math.max(0, e.hp / e.maxHp), 4);
+        }
+
+        ctx.restore();
+      }
+
+      function drawChest(chest) {
+        ctx.save();
+        ctx.translate(chest.x, chest.y);
+        ctx.fillStyle = chest.opened ? '#334155' : '#f59e0b';
+        ctx.strokeStyle = chest.opened ? '#64748b' : '#fef08a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(-22, -16, 44, 32, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        if (!chest.opened) {
+          ctx.fillStyle = '#fef08a';
+          ctx.font = 'bold 11px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('COFFRE [E]', 0, -24);
+        }
+        ctx.restore();
+      }
+
+      function drawInteractable(obj) {
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        const isMerchant = obj.type === 'merchant';
+        ctx.fillStyle = isMerchant ? '#10b981' : (obj.used ? '#475569' : '#a855f7');
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Inter';
+        ctx.textAlign = 'center';
+        const label = isMerchant ? 'MARCHAND [E]' : (obj.used ? 'AUTEL CONSUMÉ' : 'AUTEL DU DESTIN [E]');
+        ctx.fillText(label, 0, -30);
+        ctx.restore();
+      }
+
+      /* =========================================================================
+         13. RENDU DE LA MINIMAP & MISE À JOUR DU HUD
+         ========================================================================= */
+      function renderMinimap() {
+        if (!appState.run) return;
+        const floor = appState.run.floor;
+        mCtx.clearRect(0, 0, 136, 136);
+
+        const cellSize = 20;
+        const gap = 5;
+        const offset = 8;
+
+        for (const room of floor.rooms.values()) {
+          if (!room.visited && !isAdjacentToVisited(room, floor)) continue;
+
+          const rx = offset + room.gx * (cellSize + gap);
+          const ry = offset + room.gy * (cellSize + gap);
+          const isCurrent = `${room.gx},${room.gy}` === floor.currentKey;
+
+          // Couleur selon le type de salle
+          let fill = '#1e293b';
+          if (room.visited) fill = '#334155';
+          if (room.type === 'boss') fill = '#9f1239';
+          else if (room.type === 'treasure') fill = '#b45309';
+          else if (room.type === 'merchant') fill = '#047857';
+          else if (room.type === 'shrine') fill = '#6b21a8';
+          else if (room.type === 'elite') fill = '#be123c';
+
+          mCtx.fillStyle = fill;
+          mCtx.beginPath();
+          mCtx.roundRect(rx, ry, cellSize, cellSize, 4);
+          mCtx.fill();
+
+          if (isCurrent) {
+            mCtx.strokeStyle = '#22d3ee';
+            mCtx.lineWidth = 2;
+            mCtx.stroke();
+          }
+        }
+      }
+
+      function isAdjacentToVisited(room, floor) {
+        const neighbors = [
+          `${room.gx},${room.gy - 1}`,
+          `${room.gx},${room.gy + 1}`,
+          `${room.gx + 1},${room.gy}`,
+          `${room.gx - 1},${room.gy}`
+        ];
+        return neighbors.some(k => floor.rooms.get(k)?.visited);
+      }
+
+      function updateHud() {
+        const run = appState.run;
+        if (!run) return;
+        const p = run.player;
+
+        document.getElementById('hudClassIcon').textContent = p.classDef.icon;
+        document.getElementById('hudClassName').textContent = p.classDef.name;
+        document.getElementById('hudLevel').textContent = run.level;
+        document.getElementById('hudGold').textContent = run.gold;
+        document.getElementById('hudEther').textContent = run.etherEarned;
+
+        document.getElementById('hudHpText').textContent = `${Math.max(0, Math.ceil(p.hp))} / ${p.maxHp}`;
+        document.getElementById('hudHpBar').style.width = `${clamp((p.hp / p.maxHp) * 100, 0, 100)}%`;
+
+        const shieldWrap = document.getElementById('hudShieldWrapper');
+        if (p.maxShield > 0) {
+          shieldWrap.classList.remove('hidden');
+          document.getElementById('hudShieldText').textContent = `${Math.ceil(p.shield)} / ${p.maxShield}`;
+          document.getElementById('hudShieldBar').style.width = `${clamp((p.shield / p.maxShield) * 100, 0, 100)}%`;
+        } else {
+          shieldWrap.classList.add('hidden');
+        }
+
+        document.getElementById('hudXpBar').style.width = `${clamp((run.xp / run.xpToNext) * 100, 0, 100)}%`;
+
+        // Compétences & Dash
+        document.getElementById('hudSkillIcon').textContent = p.classDef.skillIcon;
+        document.getElementById('hudSkillName').textContent = p.classDef.skillName;
+
+        const skillOverlay = document.getElementById('hudSkillCdOverlay');
+        if (p.skillCooldown > 0) {
+          skillOverlay.classList.remove('hidden');
+          skillOverlay.textContent = `${p.skillCooldown.toFixed(1)}s`;
+        } else {
+          skillOverlay.classList.add('hidden');
+        }
+
+        const dashOverlay = document.getElementById('hudDashCdOverlay');
+        if (p.dashCooldown > 0) {
+          dashOverlay.classList.remove('hidden');
+          dashOverlay.textContent = `${p.dashCooldown.toFixed(1)}s`;
+        } else {
+          dashOverlay.classList.add('hidden');
+        }
+
+        // Stats & Reliques
+        document.getElementById('hudRelicCount').textContent = p.relics.length;
+        document.getElementById('hudRelicMax').textContent = p.maxRelics;
+        document.getElementById('hudStatsMini').textContent = `ATQ: ${Math.round(p.damage)} | CRIT: ${Math.round(p.critChance * 100)}%`;
+      }
+
+      function renderHudRelics() {
+        const p = appState.run.player;
+        const container = document.getElementById('hudRelicsList');
+        if (p.relics.length === 0) {
+          container.innerHTML = `<span class="text-xs text-slate-600 italic px-1 self-center">Aucune relique équipée</span>`;
+          return;
+        }
+        container.innerHTML = p.relics.map(r => `
+          <div title="${r.name} : ${r.desc}" class="w-8 h-8 rounded-lg bg-slate-900 border rarity-${r.rarity} flex items-center justify-center text-base cursor-help">
+            ${r.icon}
+          </div>
+        `).join('');
+      }
+
+      /* =========================================================================
+         14. MODALES DE BUTIN, MARCHAND, AUTEL & PAUSE
+         ========================================================================= */
+      function openLootSelection(badge, title) {
+        appState.mode = 'MODAL';
+        input.mouseDown = false;
+        const modal = document.getElementById('modalLoot');
+        document.getElementById('lootModalBadge').textContent = badge;
+        document.getElementById('lootModalTitle').textContent = title;
+        document.getElementById('rerollCostText').textContent = appState.run.rerollCost;
+        modal.classList.remove('hidden');
+        populateLootChoices();
+      }
+
+      function populateLootChoices() {
+        const p = appState.run.player;
+        const canEquipRelic = p.relics.length < p.maxRelics;
+
+        // Filtrer les reliques uniques déjà possédées ou si inventaire plein
+        const available = RELIC_POOL.filter(item => {
+          if (item.type === 'relic' && !canEquipRelic) return false;
+          if (item.type === 'relic' && p.relics.some(r => r.id === item.id)) return false;
+          return true;
+        });
+
+        const shuffled = [...available].sort(() => Math.random() - 0.5).slice(0, 3);
+        const rarityLabels = {
+          common: { text: 'COMMUN', color: 'text-slate-300' },
+          rare: { text: 'RARE', color: 'text-sky-400' },
+          epic: { text: 'ÉPIQUE', color: 'text-purple-400' },
+          legendary: { text: 'LÉGENDAIRE', color: 'text-amber-400' }
+        };
+
+        const container = document.getElementById('lootCardsContainer');
+        container.innerHTML = '';
+
+        shuffled.forEach(item => {
+          const rInfo = rarityLabels[item.rarity];
+          const card = document.createElement('button');
+          card.className = `glass-panel border-2 rarity-${item.rarity} rounded-2xl p-5 text-left flex flex-col justify-between hover:scale-[1.03] transition cursor-pointer`;
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">${item.icon}</span>
+                <span class="text-[10px] font-mono-tech font-bold tracking-widest ${rInfo.color}">${rInfo.text}</span>
+              </div>
+              <h3 class="font-display font-bold text-base sm:text-lg text-slate-100 mb-1.5">${item.name}</h3>
+              <p class="text-xs text-slate-300 leading-relaxed">${item.desc}</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-tech text-cyan-300">
+              ${item.type === 'relic' ? '💠 Relique (Occupe 1 emplacement)' : '⚡ Bénédiction Passive'}
+            </div>
+          `;
+          card.onclick = () => {
+            item.apply(p);
+            if (item.type === 'relic') {
+              p.relics.push(item);
+              renderHudRelics();
+            }
+            sound.playPickup(true);
+            document.getElementById('modalLoot').classList.add('hidden');
+            appState.mode = 'PLAYING';
+            updateHud();
+          };
+          container.appendChild(card);
+        });
+      }
+
+      document.getElementById('btnRerollLoot').onclick = () => {
+        const run = appState.run;
+        if (run.gold < run.rerollCost) {
+          showToast('Or insuffisant pour relancer !');
+          return;
+        }
+        run.gold -= run.rerollCost;
+        run.rerollCost = Math.round(run.rerollCost * 1.5);
+        document.getElementById('rerollCostText').textContent = run.rerollCost;
+        sound.playPickup(false);
+        populateLootChoices();
+        updateHud();
+      };
+
+      function openMerchantModal() {
+        appState.mode = 'MODAL';
+        input.mouseDown = false;
+        const run = appState.run;
+        const p = run.player;
+
+        document.getElementById('eventIcon').textContent = '⚖️';
+        document.getElementById('eventTitle').textContent = 'Marchand Errant du Voile';
+        document.getElementById('eventDesc').textContent = '« De l’or contre de la puissance brute. Faites votre choix. »';
+        document.getElementById('eventPlayerGold').textContent = run.gold;
+
+        const offers = [
+          {
+            name: 'Élixir de Régénération',
+            icon: '🧪',
+            cost: 30,
+            desc: 'Restaure instantanément 50% de vos PV maximum.',
+            action: () => { p.heal(p.maxHp * 0.5); }
+          },
+          {
+            name: 'Aiguisage Éthéré',
+            icon: '⚔️',
+            cost: 45,
+            desc: 'Augmente définitivement vos Dégâts de +15% pour cette run.',
+            action: () => { p.damage *= 1.15; }
+          },
+          {
+            name: 'Relique Mystère',
+            icon: '🎁',
+            cost: 65,
+            desc: 'Octroie immédiatement une relique aléatoire.',
+            action: () => {
+              document.getElementById('modalEvent').classList.add('hidden');
+              openLootSelection('ACHAT DU MARCHAND', 'Choisissez votre artefact');
+              return true;
+            }
+          }
+        ];
+
+        const container = document.getElementById('eventOptionsContainer');
+        container.innerHTML = '';
+
+        offers.forEach(off => {
+          const btn = document.createElement('button');
+          btn.className = 'glass-panel border border-slate-700 hover:border-amber-400 rounded-2xl p-4 text-left flex flex-col justify-between transition cursor-pointer';
+          btn.innerHTML = `
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-2xl">${off.icon}</span>
+                <span class="font-mono-tech text-xs font-bold text-amber-400">🪙 ${off.cost}</span>
+              </div>
+              <div class="font-bold text-sm text-slate-100 mb-1">${off.name}</div>
+              <p class="text-xs text-slate-400">${off.desc}</p>
+            </div>
+            <div class="mt-3 text-xs font-semibold text-cyan-300">Acheter ➔</div>
+          `;
+          btn.onclick = () => {
+            if (run.gold < off.cost) {
+              showToast('Or insuffisant !');
+              return;
+            }
+            run.gold -= off.cost;
+            document.getElementById('eventPlayerGold').textContent = run.gold;
+            sound.playPickup(true);
+            updateHud();
+            const openedSubModal = off.action();
+            if (!openedSubModal) {
+              btn.disabled = true;
+              btn.classList.add('opacity-40');
+              btn.querySelector('div:last-child').textContent = 'Acheté ✓';
+            }
+          };
+          container.appendChild(btn);
+        });
+
+        document.getElementById('modalEvent').classList.remove('hidden');
+      }
+
+      function openShrineModal(shrineObj) {
+        appState.mode = 'MODAL';
+        input.mouseDown = false;
+        const run = appState.run;
+        const p = run.player;
+
+        document.getElementById('eventIcon').textContent = '🕯️';
+        document.getElementById('eventTitle').textContent = 'Autel du Destin';
+        document.getElementById('eventDesc').textContent = 'Une voix ancienne résonne : « Que es-tu prêt à sacrifier pour transcender ta forme ? »';
+        document.getElementById('eventPlayerGold').textContent = run.gold;
+
+        const choices = [
+          {
+            name: 'Pacte du Sang',
+            icon: '🩸',
+            desc: 'Sacrifiez 25% de vos PV actuels pour obtenir une Relique immédiatement.',
+            action: () => {
+              p.hp = Math.max(1, Math.round(p.hp * 0.75));
+              shrineObj.used = true;
+              document.getElementById('modalEvent').classList.add('hidden');
+              openLootSelection('PACTE DU SANG', 'Votre sacrifice a été accepté');
+              return true;
+            }
+          },
+          {
+            name: 'Offrande d’Or',
+            icon: '🪙',
+            desc: 'Offrez 40 Or pour restaurer 100% de vos PV et gagner +15 Éclats d’Éther.',
+            action: () => {
+              if (run.gold < 40) { showToast('Il vous faut 40 Or !'); return false; }
+              run.gold -= 40;
+              p.heal(p.maxHp);
+              run.etherEarned += 15;
+              saveData.etherShards += 15;
+              persistSave();
+              shrineObj.used = true;
+              sound.playLevelUp();
+              document.getElementById('modalEvent').classList.add('hidden');
+              appState.mode = 'PLAYING';
+              updateHud();
+              return true;
+            }
+          },
+          {
+            name: 'Ignorer l’Autel',
+            icon: '🚶',
+            desc: 'Ne rien risquer et poursuivre votre exploration.',
+            action: () => {
+              document.getElementById('modalEvent').classList.add('hidden');
+              appState.mode = 'PLAYING';
+              return true;
+            }
+          }
+        ];
+
+        const container = document.getElementById('eventOptionsContainer');
+        container.innerHTML = '';
+        choices.forEach(c => {
+          const btn = document.createElement('button');
+          btn.className = 'glass-panel border border-purple-500/40 hover:border-purple-400 rounded-2xl p-4 text-left flex flex-col justify-between transition cursor-pointer';
+          btn.innerHTML = `
+            <div>
+              <div class="text-2xl mb-2">${c.icon}</div>
+              <div class="font-bold text-sm text-purple-200 mb-1">${c.name}</div>
+              <p class="text-xs text-slate-300">${c.desc}</p>
+            </div>
+            <div class="mt-3 text-xs font-semibold text-purple-300">Choisir ➔</div>
+          `;
+          btn.onclick = () => { c.action(); };
+          container.appendChild(btn);
+        });
+
+        document.getElementById('modalEvent').classList.remove('hidden');
+      }
+
+      document.getElementById('btnCloseEvent').onclick = () => {
+        document.getElementById('modalEvent').classList.add('hidden');
+        appState.mode = 'PLAYING';
+      };
+
+      function pauseGame() {
+        appState.mode = 'PAUSED';
+        input.mouseDown = false;
+        const run = appState.run;
+        const p = run.player;
+        document.getElementById('pauseStatsSummary').innerHTML = `
+          <div class="flex justify-between"><span>Classe :</span><span class="text-cyan-300">${p.classDef.name}</span></div>
+          <div class="flex justify-between"><span>Strate actuelle :</span><span class="text-amber-300">Strate ${run.floor.floorNum}</span></div>
+          <div class="flex justify-between"><span>Dégâts d'arme :</span><span>${Math.round(p.damage)}</span></div>
+          <div class="flex justify-between"><span>Cadence d'attaque :</span><span>${p.attackRate.toFixed(2)} / sec</span></div>
+          <div class="flex justify-between"><span>Chance Critique :</span><span>${Math.round(p.critChance * 100)}%</span></div>
+          <div class="flex justify-between"><span>Vitesse :</span><span>${Math.round(p.speed)}</span></div>
+        `;
+        document.getElementById('modalPause').classList.remove('hidden');
+      }
+
+      function resumeGame() {
+        document.getElementById('modalPause').classList.add('hidden');
+        appState.mode = 'PLAYING';
+      }
+
+      function triggerGameOver() {
+        appState.mode = 'GAMEOVER';
+        input.mouseDown = false;
+        const run = appState.run;
+
+        // Bonus de fin de run en Éclats d'Éther selon l'étage et les kills
+        const bonusEther = Math.round((run.floor.floorNum * 12 + run.kills * 1.5) * (1 + saveData.upgrades.etherGain * 0.15));
+        run.etherEarned += bonusEther;
+        saveData.etherShards += bonusEther;
+        persistSave();
+
+        document.getElementById('statEndFloor').textContent = `Strate ${run.floor.floorNum}`;
+        document.getElementById('statEndKills').textContent = run.kills;
+        document.getElementById('statEndDamage').textContent = run.damageDealt.toLocaleString('fr-FR');
+        document.getElementById('statEndEther').textContent = `+${run.etherEarned} ✦`;
+
+        document.getElementById('modalPause').classList.add('hidden');
+        document.getElementById('modalGameOver').classList.remove('hidden');
+      }
+
+      function returnToHub() {
+        appState.mode = 'HUB';
+        appState.run = null;
+        document.getElementById('modalGameOver').classList.add('hidden');
+        document.getElementById('modalPause').classList.add('hidden');
+        document.getElementById('hudContainer').classList.add('hidden');
+        document.getElementById('btnPauseHud').classList.add('hidden');
+        document.getElementById('screenHub').classList.remove('hidden');
+        renderHubUI();
+      }
+
+      /* =========================================================================
+         15. INTERFACE DU SANCTUAIRE (HUB) : CLASSES, FORGE & CODEX
+         ========================================================================= */
+      function renderHubUI() {
+        document.getElementById('hubEtherCount').textContent = saveData.etherShards;
+
+        // 1. Cartes de Classes
+        const classGrid = document.getElementById('classGrid');
+        classGrid.innerHTML = CLASSES.map(cls => {
+          const isSelected = saveData.selectedClass === cls.id;
+          return `
+            <div data-classid="${cls.id}" class="class-card glass-panel rounded-3xl p-5 sm:p-6 transition-all cursor-pointer flex flex-col justify-between ${isSelected ? 'border-2 border-cyan-400 shadow-lg shadow-cyan-500/20 scale-[1.01]' : 'opacity-85 hover:opacity-100'}">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background:${cls.color}22; border: 1px solid ${cls.color}66">
+                    ${cls.icon}
+                  </div>
+                  ${isSelected ? '<span class="px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-[11px] font-mono-tech font-bold">SÉLECTIONNÉ</span>' : ''}
+                </div>
+                <h3 class="font-display text-lg sm:text-xl font-bold text-slate-100">${cls.name}</h3>
+                <div class="text-xs font-mono-tech text-cyan-300 mb-3">${cls.role}</div>
+
+                <div class="grid grid-cols-3 gap-2 bg-slate-950/70 rounded-xl p-2.5 text-center font-mono-tech text-xs mb-4 border border-slate-800/80">
+                  <div><div class="text-[10px] text-slate-500">PV</div><div class="text-rose-300 font-bold">${cls.hp + saveData.upgrades.maxHp * 15}</div></div>
+                  <div><div class="text-[10px] text-slate-500">ATQ</div><div class="text-amber-300 font-bold">${Math.round(cls.damage * (1 + saveData.upgrades.damage * 0.08))}</div></div>
+                  <div><div class="text-[10px] text-slate-500">CRIT</div><div class="text-cyan-300 font-bold">${Math.round((cls.critChance + saveData.upgrades.crit * 0.03) * 100)}%</div></div>
+                </div>
+
+                <div class="space-y-2 text-xs text-slate-300">
+                  <p><strong class="text-slate-100">Arme :</strong> ${cls.weaponDesc}</p>
+                  <p><strong class="text-amber-300">${cls.skillIcon} ${cls.skillName} :</strong> ${cls.skillDesc}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.querySelectorAll('.class-card').forEach(card => {
+          card.onclick = () => {
+            saveData.selectedClass = card.dataset.classid;
+            persistSave();
+            sound.playPickup(false);
+            renderHubUI();
+          };
+        });
+
+        // 2. Atelier d'Améliorations Permanentes
+        const metaGrid = document.getElementById('metaUpgradesGrid');
+        metaGrid.innerHTML = META_UPGRADES.map(u => {
+          const lvl = saveData.upgrades[u.id] || 0;
+          const isMax = lvl >= u.maxLevel;
+          const cost = Math.round(u.baseCost * Math.pow(u.costMult, lvl));
+          const canAfford = saveData.etherShards >= cost && !isMax;
+
+          return `
+            <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-2xl">${u.icon}</span>
+                  <span class="text-xs font-mono-tech text-cyan-300">Rang ${lvl} / ${u.maxLevel}</span>
+                </div>
+                <h4 class="font-bold text-slate-100 text-sm">${u.name}</h4>
+                <p class="text-xs text-slate-400 mt-1">${u.desc}</p>
+              </div>
+
+              <button data-upgid="${u.id}" data-cost="${cost}" ${!canAfford ? 'disabled' : ''} class="btn-meta-buy w-full py-2.5 px-3 rounded-xl font-mono-tech text-xs font-bold flex items-center justify-center gap-2 transition ${isMax ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30' : (canAfford ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer' : 'bg-slate-800/80 text-slate-500 cursor-not-allowed')}">
+                ${isMax ? 'RANG MAXIMUM ✓' : `Améliorer (${cost} ✦)`}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        document.querySelectorAll('.btn-meta-buy').forEach(btn => {
+          btn.onclick = () => {
+            const id = btn.dataset.upgid;
+            const cost = parseInt(btn.dataset.cost, 10);
+            if (saveData.etherShards >= cost) {
+              saveData.etherShards -= cost;
+              saveData.upgrades[id] += 1;
+              persistSave();
+              sound.playLevelUp();
+              renderHubUI();
+            }
+          };
+        });
+
+        // 3. Statistiques & Codex
+        document.getElementById('careerStatsGrid').innerHTML = `
+          <div class="glass-panel rounded-2xl p-4 text-center">
+            <div class="text-xs text-slate-400 font-mono-tech">Expéditions</div>
+            <div class="text-2xl font-bold text-slate-100 mt-1">${saveData.stats.runsPlayed}</div>
+          </div>
+          <div class="glass-panel rounded-2xl p-4 text-center">
+            <div class="text-xs text-slate-400 font-mono-tech">Meilleure Strate</div>
+            <div class="text-2xl font-bold text-cyan-300 mt-1">Strate ${saveData.stats.bestFloor}</div>
+          </div>
+          <div class="glass-panel rounded-2xl p-4 text-center">
+            <div class="text-xs text-slate-400 font-mono-tech">Entités Éliminées</div>
+            <div class="text-2xl font-bold text-rose-300 mt-1">${saveData.stats.totalKills}</div>
+          </div>
+          <div class="glass-panel rounded-2xl p-4 text-center">
+            <div class="text-xs text-slate-400 font-mono-tech">Gardiens Vaincus</div>
+            <div class="text-2xl font-bold text-amber-300 mt-1">${saveData.stats.bossesDefeated}</div>
+          </div>
+        `;
+
+        document.getElementById('bestiaryGrid').innerHTML = BESTIARY.map(b => `
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-start gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-2xl shrink-0">${b.icon}</div>
+            <div>
+              <div class="font-bold text-sm text-slate-100">${b.name}</div>
+              <div class="text-[11px] font-mono-tech text-amber-300 mb-1">${b.role}</div>
+              <p class="text-xs text-slate-400 leading-relaxed">${b.desc}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Navigation entre onglets du Hub
+      document.querySelectorAll('.hub-tab-btn').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('.hub-tab-btn').forEach(b => {
+            b.className = 'hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer';
+          });
+          btn.className = 'hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 transition cursor-pointer';
+
+          const target = btn.dataset.hubtab;
+          document.getElementById('tabDeploy').classList.toggle('hidden', target !== 'deploy');
+          document.getElementById('tabForge').classList.toggle('hidden', target !== 'forge');
+          document.getElementById('tabCodex').classList.toggle('hidden', target !== 'codex');
+        };
+      });
+
+      document.getElementById('btnResetMeta').onclick = () => {
+        let refund = 0;
+        META_UPGRADES.forEach(u => {
+          const lvl = saveData.upgrades[u.id] || 0;
+          for (let i = 0; i < lvl; i++) {
+            refund += Math.round(u.baseCost * Math.pow(u.costMult, i));
+          }
+          saveData.upgrades[u.id] = 0;
+        });
+        saveData.etherShards += refund;
+        persistSave();
+        renderHubUI();
+        showToast(`Améliorations réinitialisées (+${refund} ✦ remboursés)`);
+      };
+
+      // Boutons globaux
+      document.getElementById('btnStartRun').onclick = startNewRun;
+      document.getElementById('btnPauseHud').onclick = pauseGame;
+      document.getElementById('btnResumeGame').onclick = resumeGame;
+      document.getElementById('btnAbandonRun').onclick = triggerGameOver;
+      document.getElementById('btnReturnHub').onclick = returnToHub;
+
+      document.getElementById('btnToggleAudio').onclick = () => {
+        const isOn = sound.toggle();
+        document.getElementById('audioIcon').textContent = isOn ? '🔊' : '🔇';
+        document.getElementById('audioLabel').textContent = isOn ? 'SON ON' : 'MUET';
+      };
+
+      /* =========================================================================
+         16. BOUCLE D'ANIMATION PRINCIPALE (REQUESTANIMATIONFRAME)
+         ========================================================================= */
+      let lastTime = performance.now();
+
+      function gameLoop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+
+        if (appState.mode === 'PLAYING' && appState.run) {
+          updateGame(dt);
+        }
+        renderScene(dt);
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // Initialisation au démarrage
+      window.addEventListener('load', () => {
+        renderHubUI();
+        requestAnimationFrame(gameLoop);
+      });
+    })();
+  </script>
+</body>
+</html>
