@@ -328,6 +328,126 @@
     color:var(--text-soft);
     font-size:0.8rem;
   }
+
+  /* ---------- Code secret : bouton enflammé + panneau des jeux IA ---------- */
+  .fire-fab{
+    position:fixed;
+    right:18px;
+    top:50%;
+    z-index:60;
+    width:62px;
+    height:78px;
+    border:none;
+    border-radius:50% 50% 46% 46% / 58% 58% 42% 42%;
+    background:radial-gradient(circle at 50% 80%, #5a1a05 0%, #240a06 70%);
+    box-shadow:0 0 18px 4px rgba(255,120,20,0.65), 0 0 46px 10px rgba(255,60,0,0.35), inset 0 -6px 14px rgba(255,140,30,0.35);
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    transform:translateY(-50%);
+  }
+  .fire-fab.show{
+    display:flex;
+    animation:fire-ignite 0.9s cubic-bezier(.2,1.4,.4,1) both, fire-glow 1.6s ease-in-out 0.9s infinite alternate;
+  }
+  .fire-fab.hide{ animation:fire-out 0.4s ease-in both; pointer-events:none; }
+  .fire-fab:hover{ transform:translateY(-50%) scale(1.08); }
+  .fire-fab:active{ transform:translateY(-50%) scale(0.95); }
+  .fire-fab svg{ width:40px; height:52px; overflow:visible; }
+  .flame-outer{ transform-origin:50% 100%; animation:flame-flicker 0.7s ease-in-out infinite alternate; }
+  .flame-inner{ transform-origin:50% 100%; animation:flame-flicker 0.5s ease-in-out infinite alternate-reverse; }
+  .ember{
+    position:absolute;
+    bottom:60%;
+    width:5px; height:5px;
+    border-radius:50%;
+    background:#ffb347;
+    box-shadow:0 0 6px 2px rgba(255,150,40,0.8);
+    opacity:0;
+    pointer-events:none;
+    animation:ember-rise 2.2s ease-out infinite;
+  }
+  .ember:nth-child(2){ left:30%; animation-delay:0.6s; width:4px; height:4px; }
+  .ember:nth-child(3){ left:62%; animation-delay:1.2s; }
+  .ember:nth-child(4){ left:46%; animation-delay:1.7s; width:3px; height:3px; }
+  @keyframes flame-flicker{
+    0%  { transform:scale(1,1) skewX(0deg); }
+    50% { transform:scale(0.94,1.08) skewX(-3deg); }
+    100%{ transform:scale(1.04,0.95) skewX(3deg); }
+  }
+  @keyframes fire-glow{
+    from{ box-shadow:0 0 14px 3px rgba(255,120,20,0.55), 0 0 36px 8px rgba(255,60,0,0.28), inset 0 -6px 14px rgba(255,140,30,0.3); }
+    to  { box-shadow:0 0 24px 6px rgba(255,150,30,0.8), 0 0 60px 14px rgba(255,70,0,0.45), inset 0 -6px 18px rgba(255,160,40,0.45); }
+  }
+  @keyframes fire-ignite{
+    0%  { opacity:0; transform:translateY(-50%) translateX(60px) scale(0.2); }
+    100%{ opacity:1; transform:translateY(-50%) translateX(0) scale(1); }
+  }
+  @keyframes fire-out{
+    0%  { opacity:1; transform:translateY(-50%) scale(1); }
+    100%{ opacity:0; transform:translateY(-50%) translateX(40px) scale(0.2); }
+  }
+  @keyframes ember-rise{
+    0%  { opacity:0; transform:translate(0,0); }
+    15% { opacity:1; }
+    100%{ opacity:0; transform:translate(-14px,-48px); }
+  }
+
+  .games-modal{ max-width:520px; }
+  .games-head{
+    padding:22px 26px 16px;
+    background:linear-gradient(160deg,#ff9a1f,#e8340c);
+    color:#fff;
+    border-radius:20px 20px 0 0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .games-head svg{ width:30px; height:38px; flex:none; }
+  .games-head h2{ margin:0; font-size:1.35rem; }
+  .games-head small{ display:block; opacity:0.85; font-family:'Nunito',sans-serif; font-size:0.8rem; }
+  .games-list{ padding:16px 20px 6px; display:flex; flex-direction:column; gap:10px; }
+  .game-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:10px 14px;
+    border-radius:16px;
+    border:1px solid var(--btn-border);
+    background:var(--btn-bg);
+    color:var(--text);
+    text-decoration:none;
+    box-shadow:0 3px 6px var(--btn-shadow);
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .game-row:hover{ transform:translateY(-2px); box-shadow:0 6px 12px var(--btn-shadow); }
+  .game-icon{
+    width:44px; height:44px;
+    border-radius:26%;
+    flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:1.2rem;
+    color:#fff;
+    box-shadow:inset 0 2px 3px rgba(255,255,255,0.35);
+  }
+  .game-name{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:600;
+    font-size:1rem;
+    flex:1;
+    word-break:break-word;
+  }
+  .game-row svg{ width:18px; height:18px; stroke:var(--text-soft); flex:none; }
+  .games-status{ text-align:center; color:var(--text-soft); padding:22px 10px; line-height:1.5; }
+  .games-foot{ padding:10px 26px 22px; text-align:center; }
+
+  @media (max-width:560px){
+    .fire-fab{ right:10px; width:54px; height:68px; }
+  }
 </style>
 </head>
 <body data-theme="light">
@@ -416,6 +536,49 @@
       <div style="margin-top:22px;">
         <button class="btn-close" data-close>Fermer</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Code secret : bouton enflammé (apparaît en tapant "firedark") -->
+<button class="fire-fab" id="fire-fab" title="Jeux IA" aria-label="Afficher les jeux IA">
+  <svg viewBox="0 0 24 32" aria-hidden="true">
+    <defs>
+      <linearGradient id="flameOuter" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ff3b00"/>
+        <stop offset="0.6" stop-color="#ff8a00"/>
+        <stop offset="1" stop-color="#ffd23f"/>
+      </linearGradient>
+      <linearGradient id="flameInner" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0" stop-color="#ffb000"/>
+        <stop offset="1" stop-color="#fff7b0"/>
+      </linearGradient>
+    </defs>
+    <path class="flame-outer" fill="url(#flameOuter)" d="M12 1c1 5 7 8 7 16a7 7 0 0 1-14 0c0-3 1.5-5 3-7 .3 2 1.2 3 2 3.5C10 9 10.5 5 12 1z"/>
+    <path class="flame-inner" fill="url(#flameInner)" d="M12 15c.6 2.4 3.5 3.6 3.5 6.5a3.5 3.5 0 0 1-7 0c0-1.6.8-2.6 1.6-3.6.3 1 .7 1.4 1.1 1.7-.2-1.7.2-3.2.8-4.6z"/>
+  </svg>
+  <span class="ember" style="left:36%"></span>
+  <span class="ember"></span>
+  <span class="ember"></span>
+  <span class="ember"></span>
+</button>
+
+<!-- Modale jeux IA -->
+<div class="overlay" id="games-overlay">
+  <div class="modal games-modal">
+    <div class="games-head">
+      <svg viewBox="0 0 24 32" aria-hidden="true">
+        <path fill="#fff" d="M12 1c1 5 7 8 7 16a7 7 0 0 1-14 0c0-3 1.5-5 3-7 .3 2 1.2 3 2 3.5C10 9 10.5 5 12 1z"/>
+      </svg>
+      <div>
+        <h2>Jeux IA</h2>
+        <small>Les jeux du dossier ./IA</small>
+      </div>
+    </div>
+    <div class="games-list" id="games-list"></div>
+    <div class="games-foot">
+      <button class="btn-close" data-close>Fermer</button>
     </div>
   </div>
 </div>
@@ -654,6 +817,157 @@ document.getElementById('size-down').addEventListener('click', () => {
   const idx = densities.indexOf(mainEl.getAttribute('data-density'));
   setDensity(densities[Math.min(idx + 1, densities.length - 1)]);
 });
+
+/* =========================================================
+   Code secret "firedark" -> bouton enflammé -> jeux du dossier ./IA
+   ========================================================= */
+const SECRET_CODE = 'firedark';
+const GAMES_DIR   = 'IA';           // dossier contenant les jeux
+const fireFab     = document.getElementById('fire-fab');
+const gamesOverlay= document.getElementById('games-overlay');
+const gamesList   = document.getElementById('games-list');
+
+let typedBuffer = '';
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  // "dans le vide" : on ignore la saisie dans un champ de texte
+  if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if(e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+  typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-SECRET_CODE.length);
+  if(typedBuffer === SECRET_CODE){
+    typedBuffer = '';
+    igniteFire();
+  }
+});
+
+function igniteFire(){
+  // retaper le code : si le bouton est déjà là, on l'éteint
+  if(fireFab.classList.contains('show')){
+    extinguishFire();
+    return;
+  }
+  fireFab.classList.remove('hide');
+  void fireFab.offsetWidth;                       // relance l'animation
+  fireFab.classList.add('show');
+}
+
+function extinguishFire(){
+  gamesOverlay.classList.remove('active');
+  fireFab.classList.add('hide');
+  setTimeout(() => {
+    fireFab.classList.remove('show','hide');
+  }, 400);
+}
+
+fireFab.addEventListener('click', () => {
+  gamesOverlay.classList.add('active');
+  loadGames();
+});
+
+/* ---- Découverte des jeux ---- */
+let gamesPromise = null;
+function loadGames(){
+  if(!gamesPromise){
+    gamesList.innerHTML = '<div class="games-status">Chargement des jeux…</div>';
+    gamesPromise = discoverGames().catch(() => []);
+    gamesPromise.then(renderGames);
+  } else {
+    gamesPromise.then(renderGames);
+  }
+}
+
+async function discoverGames(){
+  let entries = await listViaGitHubApi();
+  if(!entries) entries = await listViaDirectoryIndex();
+  if(!entries) return [];
+
+  const games = [];
+  await Promise.all(entries.map(async (en) => {
+    if(en.type === 'file' && /\.html?$/i.test(en.name)){
+      games.push({ name: en.name.replace(/\.html?$/i, ''), url: `${GAMES_DIR}/${encodeURIComponent(en.name)}` });
+    } else if(en.type === 'dir'){
+      // un sous-dossier compte comme un jeu s'il contient un index.html
+      const url = `${GAMES_DIR}/${encodeURIComponent(en.name)}/`;
+      try{
+        const r = await fetch(url + 'index.html', { method:'HEAD' });
+        if(r.ok) games.push({ name: en.name, url });
+      }catch(_){}
+    }
+  }));
+  return games.sort((a,b) => a.name.localeCompare(b.name, 'fr', { numeric:true, sensitivity:'base' }));
+}
+
+/* Sur GitHub Pages : l'API GitHub liste le contenu du dossier */
+async function listViaGitHubApi(){
+  const host = location.hostname;
+  if(!host.endsWith('.github.io')) return null;
+  const owner = host.split('.')[0];
+  const first = location.pathname.split('/').filter(Boolean)[0];
+  const repo  = (first && !first.includes('.')) ? first : `${owner}.github.io`;
+  try{
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${GAMES_DIR}`);
+    if(!r.ok) return null;
+    const data = await r.json();
+    return Array.isArray(data) ? data.map(d => ({ name:d.name, type:d.type })) : null;
+  }catch(_){ return null; }
+}
+
+/* En local (Live Server, python -m http.server…) : on lit la page d'index du dossier */
+async function listViaDirectoryIndex(){
+  try{
+    const r = await fetch(`${GAMES_DIR}/`);
+    if(!r.ok) return null;
+    const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+    const base = new URL(`${GAMES_DIR}/`, location.href);
+    const seen = new Set(), out = [];
+    doc.querySelectorAll('a[href]').forEach(a => {
+      const raw = a.getAttribute('href');
+      if(!raw || raw.startsWith('?') || raw.startsWith('#') || raw.startsWith('..')) return;
+      const u = new URL(raw, base);
+      if(u.origin !== base.origin || !u.pathname.startsWith(base.pathname) || u.pathname === base.pathname) return;
+      const rel = decodeURIComponent(u.pathname.slice(base.pathname.length)).replace(/\/$/, '');
+      if(!rel || rel.includes('/') || seen.has(rel)) return;
+      seen.add(rel);
+      out.push({ name: rel, type: u.pathname.endsWith('/') ? 'dir' : 'file' });
+    });
+    return out;
+  }catch(_){ return null; }
+}
+
+/* ---- Affichage ---- */
+const gameColors = [['#ff9a1f','#e8340c'],['#7a3cff','#5ee7ff'],['#2b8a84','#b8935a'],['#cc0000','#3b4cca'],['#f5a623','#f76b1c']];
+function renderGames(games){
+  gamesList.innerHTML = '';
+  if(!games.length){
+    const d = document.createElement('div');
+    d.className = 'games-status';
+    d.textContent = `Aucun jeu trouvé dans ./${GAMES_DIR}.`;
+    gamesList.appendChild(d);
+    return;
+  }
+  games.forEach((g, i) => {
+    const [c1, c2] = gameColors[i % gameColors.length];
+    const a = document.createElement('a');
+    a.className = 'game-row';
+    a.href = g.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+
+    const icon = document.createElement('div');
+    icon.className = 'game-icon';
+    icon.style.background = `linear-gradient(160deg, ${c1}, ${c2})`;
+    icon.textContent = g.name.charAt(0).toUpperCase();
+
+    const name = document.createElement('div');
+    name.className = 'game-name';
+    name.textContent = g.name;
+
+    a.append(icon, name);
+    a.insertAdjacentHTML('beforeend',
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M7 7h10v10"></path></svg>');
+    gamesList.appendChild(a);
+  });
+}
 </script>
 </body>
 </html>
