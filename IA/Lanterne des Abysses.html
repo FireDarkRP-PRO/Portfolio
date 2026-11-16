@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lanterne des Abysses</title>
+<style>
+:root{--bg:#e9eef5;--fg:#0b1020;--ac:#0a8f7a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#05070f;--fg:#dff3ff;--ac:#4dffd2}}
+:root[data-theme="dark"]{--bg:#05070f;--fg:#dff3ff;--ac:#4dffd2}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh}
+#w{position:relative;width:min(100vw,960px);aspect-ratio:960/600}
+canvas{width:100%;height:100%;display:block;background:#05070f;border-radius:8px;cursor:crosshair}
+#ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:rgba(3,6,14,.86);color:#dff3ff;border-radius:8px;padding:12px;overflow:auto}
+#ui.h{display:none}
+h1{margin:0;font-size:clamp(24px,5vw,44px);color:#4dffd2;text-shadow:0 0 18px #4dffd2}
+p{margin:0;font-size:clamp(11px,1.8vw,15px);opacity:.85;max-width:620px}
+button{font:inherit;color:#dff3ff;background:#10223a;border:1px solid #4dffd2;border-radius:8px;padding:8px 14px;cursor:pointer}
+button:hover:not(:disabled){background:#4dffd2;color:#05070f}
+button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.card{width:clamp(130px,26%,200px);padding:12px;display:flex;flex-direction:column;gap:6px}
+.card b{color:#ffd166}.card:hover b{color:inherit}
+</style>
+</head>
+<body>
+<div id="w"><canvas id="c" width="960" height="600"></canvas><div id="ui"></div></div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),W=960,H=600,UI=document.getElementById('ui');
+const K={},M={x:W/2,y:H/2};
+let S={ess:0,hp:0,dmg:0,spd:0,best:0};
+try{Object.assign(S,JSON.parse(localStorage.getItem('lad')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('lad',JSON.stringify(S))}catch(e){}};
+const R=Math.random,D=(a,b,c,d)=>Math.hypot(a-c,b-d);
+let st='menu',P,room,en,bl,eb,pt,Q,qt,ess,t=0,shake=0,choices=[],last=0;
+
+const UP=[
+['Flamme vive','+25 % de dégâts',()=>P.dmg*=1.25],
+['Mèche rapide','+22 % de cadence',()=>P.rate*=.82],
+['Triple éclat','+1 projectile',()=>P.n++],
+['Lumière perçante','Les tirs traversent +1 ennemi',()=>P.pierce++],
+['Ricochet','Les tirs rebondissent +1 fois',()=>P.bounce++],
+['Pas d’ombre','+15 % de vitesse',()=>P.spd*=1.15],
+['Cœur de cire','+30 PV max et soin complet',()=>{P.mh+=30;P.hp=P.mh}],
+['Vampirisme','Soin de 2 PV par ennemi tué',()=>P.ls+=2],
+['Éclipse','Esquive rechargée 30 % plus vite',()=>P.dcd*=.7],
+['Lucioles','+1 orbe tournant qui blesse',()=>P.orbs++],
+['Supernova','Les ennemis explosent à leur mort',()=>P.boom+=1],
+['Œil de verre','+15 % de coups critiques',()=>P.crit+=.15],
+['Gros calibre','Tirs plus gros, +15 % dégâts',()=>{P.br+=2;P.dmg*=1.15}],
+['Soin d’urgence','Récupère 50 PV',()=>P.hp=Math.min(P.mh,P.hp+50)]
+];
+const SH=[['hp','Vitalité','+20 PV de départ'],['dmg','Puissance','+15 % dégâts'],['spd','Agilité','+12 de vitesse']];
+
+function menu(msg){
+st='menu';
+UI.className='';
+UI.innerHTML=`<h1>LANTERNE DES ABYSSES</h1><p>${msg||'Tu es une lanterne vivante qui descend dans un temple englouti. Chaque salle vidée t’offre un pouvoir. Chaque mort t’offre de l’essence pour revenir plus fort.'}</p>
+<p><b>ZQSD / WASD</b> : se déplacer · <b>Souris</b> : viser (tir automatique) · <b>Espace</b> : esquive</p>
+<p>Essence : <b style="color:#ffd166">${S.ess}</b> · Record : salle <b>${S.best}</b></p>
+<div class="row">${SH.map(([k,n,d])=>`<button class="card" ${S.ess<cost(k)||S[k]>=10?'disabled':''} onclick="buy('${k}')"><b>${n} (niv. ${S[k]}/10)</b>${d}<span>${S[k]>=10?'MAX':cost(k)+' essence'}</span></button>`).join('')}</div>
+<button onclick="newRun()" style="font-size:1.2em;padding:10px 28px">▶ Descendre</button>`;
+}
+const cost=k=>15*(S[k]+1);
+function buy(k){if(S.ess>=cost(k)&&S[k]<10){S.ess-=cost(k);S[k]++;save();menu()}}
+
+function newRun(){
+P={x:W/2,y:H/2,mh:100+20*S.hp,hp:100+20*S.hp,spd:200+12*S.spd,dmg:10*(1+.15*S.dmg),rate:.34,n:1,pierce:0,bounce:0,ls:0,orbs:0,boom:0,crit:.05,dcd:1.6,dc:0,inv:0,dash:0,dx:0,dy:0,r:11,br:4,cd:0};
+room=0;ess=0;nextRoom();
+}
+function nextRoom(){
+room++;en=[];bl=[];eb=[];pt=[];Q=[];qt=0;P.x=W/2;P.y=H/2;
+const n=Math.min(4+room*2,26);
+if(room%5==0){Q.push({t:.3,k:'z'});for(let i=0;i<4;i++)Q.push({t:2+i*1.5,k:'a'})}
+else for(let i=0;i<n;i++){
+ const p=[['a'],['a','b'],['a','b','d'],['a','b','d','c']][Math.min(3,Math.floor(room/2))];
+ Q.push({t:.3+i*.45,k:p[Math.floor(R()*p.length)]});
+}
+st='play';UI.className='h';last=performance.now();
+}
+function mk(k){
+const T={a:[20,85,10,'#ff5d73'],b:[22,70,10,'#ffb347'],c:[90,45,17,'#a06bff'],d:[16,0,9,'#4dffd2'],z:[550,50,36,'#ff2e63']}[k];
+const s=1+room*.12,hp=k=='z'?550+room*70:T[0]*s;
+const e={k,hp,mh:hp,sp:T[1]*(1+room*.01),r:T[2],c:T[3],x:0,y:0,w:.8,cd:1+R(),s:0,vx:0,vy:0,hc:0,oc:0,a:0};
+do{e.x=40+R()*(W-80);e.y=40+R()*(H-80)}while(D(e.x,e.y,P.x,P.y)<220);
+return e;
+}
+function fire(x,y,vx,vy,r){eb.push({x,y,vx,vy,r:r||5,l:6})}
+function boom(x,y,rad,d){
+for(let i=0;i<14;i++)pt.push({x,y,vx:(R()-.5)*300,vy:(R()-.5)*300,l:.5,c:'#ffd166'});
+for(const e of en)if(!e.dead&&e.w<=0&&D(e.x,e.y,x,y)<rad+e.r){e.hp-=d;e.hc=.08;if(e.hp<=0)kill(e,true)}
+}
+function kill(e,nochain){
+if(e.dead)return;e.dead=true;
+for(let i=0;i<10;i++){const a=R()*6.28,v=60+R()*160;pt.push({x:e.x,y:e.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.6,c:e.c})}
+ess+=e.k=='z'?10:1;P.hp=Math.min(P.mh,P.hp+P.ls);
+if(P.boom&&!nochain)boom(e.x,e.y,50+P.boom*10,P.dmg*1.5*P.boom);
+if(e.k=='z'){shake=14;eb=[]}
+}
+function hurt(d){
+if(P.inv>0||st!='play')return;
+P.hp-=d;P.inv=.7;shake=8;
+if(P.hp<=0){die()}
+}
+function die(){
+S.ess+=ess;S.best=Math.max(S.best,room);save();st='dead';
+menu(`<b style="color:#ff5d73">La lumière s’éteint…</b><br>Tu es tombé à la salle ${room} et tu récoltes ${ess} essence.`);
+}
+function pick(){
+st='pick';
+choices=[...UP].sort(()=>R()-.5).slice(0,3);
+UI.className='';
+UI.innerHTML=`<h1 style="font-size:clamp(20px,4vw,32px)">Salle ${room} purifiée</h1><p>Choisis un pouvoir (touches 1, 2, 3)</p><div class="row">${choices.map((u,i)=>`<button class="card" onclick="take(${i})"><b>${i+1}. ${u[0]}</b>${u[1]}</button>`).join('')}</div>`;
+}
+function take(i){
+if(st!='pick')return;choices[i][2]();
+if(room%5==0)P.hp=Math.min(P.mh,P.hp+P.mh*.3);
+nextRoom();
+}
+
+addEventListener('keydown',e=>{
+const k=e.key.toLowerCase();K[k]=true;
+if(k==' ')e.preventDefault();
+if(st=='pick'&&'123'.includes(k)&&k)take(+k-1);
+});
+addEventListener('keyup',e=>K[e.key.toLowerCase()]=false);
+C.addEventListener('mousemove',e=>{const r=C.getBoundingClientRect();M.x=(e.clientX-r.left)*W/r.width;M.y=(e.clientY-r.top)*H/r.height});
+C.addEventListener('touchmove',e=>{e.preventDefault();const r=C.getBoundingClientRect(),q=e.touches[0];M.x=(q.clientX-r.left)*W/r.width;M.y=(q.clientY-r.top)*H/r.height},{passive:false});
+
+function update(dt){
+t+=dt;P.inv-=dt;P.dc-=dt;P.cd-=dt;shake*=.9;
+let ix=(K['d']||K['arrowright']?1:0)-(K['q']||K['a']||K['arrowleft']?1:0),iy=(K['s']||K['arrowdown']?1:0)-(K['z']||K['w']||K['arrowup']?1:0);
+const l=Math.hypot(ix,iy)||1;ix/=l;iy/=l;
+if(K[' ']&&P.dc<=0&&(ix||iy)){P.dash=.16;P.dc=P.dcd;P.dx=ix;P.dy=iy;P.inv=Math.max(P.inv,.25)}
+if(P.dash>0){P.dash-=dt;P.x+=P.dx*620*dt;P.y+=P.dy*620*dt;pt.push({x:P.x,y:P.y,vx:0,vy:0,l:.3,c:'#4dffd2'})}
+else{P.x+=ix*P.spd*dt;P.y+=iy*P.spd*dt}
+P.x=Math.max(14,Math.min(W-14,P.x));P.y=Math.max(14,Math.min(H-14,P.y));
+// tir
+if(P.cd<=0){
+ P.cd=P.rate;const a=Math.atan2(M.y-P.y,M.x-P.x);
+ for(let i=0;i<P.n;i++){
+  const aa=a+.2*(i-(P.n-1)/2);
+  bl.push({x:P.x,y:P.y,vx:Math.cos(aa)*560,vy:Math.sin(aa)*560,l:1.3,p:P.pierce,b:P.bounce,h:new Set()});
+ }
+}
+// file d'apparition
+qt+=dt;while(Q.length&&Q[0].t<=qt)en.push(mk(Q.shift().k));
+// balles
+for(const b of bl){
+ b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;
+ if(b.x<0||b.x>W){if(b.b>0){b.vx*=-1;b.b--;b.x=Math.max(0,Math.min(W,b.x))}else b.l=0}
+ if(b.y<0||b.y>H){if(b.b>0){b.vy*=-1;b.b--;b.y=Math.max(0,Math.min(H,b.y))}else b.l=0}
+ for(const e of en){
+  if(e.dead||e.w>0||b.h.has(e)||b.l<=0)continue;
+  if(D(b.x,b.y,e.x,e.y)<e.r+P.br){
+   b.h.add(e);const c=R()<P.crit;e.hp-=P.dmg*(c?2.2:1);e.hc=.08;
+   e.x+=b.vx*.02;e.y+=b.vy*.02;
+   pt.push({x:b.x,y:b.y,vx:(R()-.5)*100,vy:(R()-.5)*100,l:.2,c:c?'#ffd166':'#fff'});
+   if(e.hp<=0)kill(e);
+   if(b.p>0)b.p--;else b.l=0;
+  }
+ }
+}
+bl=bl.filter(b=>b.l>0);
+// orbes
+if(P.orbs)for(let i=0;i<P.orbs;i++){
+ const a=t*3+i*6.283/P.orbs,ox=P.x+Math.cos(a)*48,oy=P.y+Math.sin(a)*48;
+ for(const e of en)if(!e.dead&&e.w<=0&&D(ox,oy,e.x,e.y)<e.r+7&&e.oc<=0){e.oc=.3;e.hp-=P.dmg*.8;e.hc=.08;if(e.hp<=0)kill(e)}
+}
+// ennemis
+for(const e of en){
+ if(e.dead)continue;
+ e.oc-=dt;e.hc-=dt;
+ if(e.w>0){e.w-=dt;continue}
+ const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d;
+ if(e.k=='a'||e.k=='c'){e.x+=ux*e.sp*dt;e.y+=uy*e.sp*dt}
+ else if(e.k=='b'){
+  const m=d>240?1:d<170?-1:0;e.x+=ux*e.sp*m*dt;e.y+=uy*e.sp*m*dt;
+  e.cd-=dt;if(e.cd<=0){e.cd=1.8;fire(e.x,e.y,ux*190,uy*190)}
+ }else if(e.k=='d'){
+  e.cd-=dt;
+  if(e.s==0&&e.cd<=0){e.s=1;e.cd=.55;e.vx=ux;e.vy=uy}
+  else if(e.s==1&&e.cd<=0){e.s=2;e.cd=.4}
+  else if(e.s==2){e.x+=e.vx*430*dt;e.y+=e.vy*430*dt;if(e.cd<=0){e.s=0;e.cd=1+R()}}
+ }else if(e.k=='z'){
+  const f=e.hp<e.mh/2?1.6:1;
+  e.x+=ux*e.sp*f*dt;e.y+=uy*e.sp*f*dt;e.cd-=dt;e.a+=dt;
+  if(e.cd<=0){
+   e.cd=2.4/f;const n=e.hp<e.mh/2?20:14;
+   for(let i=0;i<n;i++){const a=i*6.283/n+e.a;fire(e.x,e.y,Math.cos(a)*170,Math.sin(a)*170,6)}
+   if(R()<.4){en.push(Object.assign(mk('a'),{x:e.x+30,y:e.y,w:.3}))}
+  }
+ }
+ e.x=Math.max(8,Math.min(W-8,e.x));e.y=Math.max(8,Math.min(H-8,e.y));
+ if(d<e.r+P.r)hurt(e.k=='z'?20:10);
+}
+// balles ennemies
+for(const b of eb){
+ b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;
+ if(b.x<-10||b.x>W+10||b.y<-10||b.y>H+10)b.l=0;
+ if(D(b.x,b.y,P.x,P.y)<b.r+P.r-3){b.l=0;hurt(8)}
+}
+eb=eb.filter(b=>b.l>0);
+en=en.filter(e=>!e.dead);
+for(const p of pt){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}
+pt=pt.filter(p=>p.l>0);
+if(st=='play'&&!Q.length&&!en.length)pick();
+}
+
+const BIO=[['#070b18','#12304a'],['#14070f','#4a1230'],['#0b1407','#2f4a12']];
+function draw(){
+const bio=BIO[Math.floor(((room||1)-1)/5)%3];
+X.save();
+if(shake>.5)X.translate((R()-.5)*shake,(R()-.5)*shake);
+X.fillStyle=bio[0];X.fillRect(-20,-20,W+40,H+40);
+X.strokeStyle=bio[1];X.lineWidth=1;X.globalAlpha=.5;
+for(let x=0;x<=W;x+=48){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}
+for(let y=0;y<=H;y+=48){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}
+X.globalAlpha=1;
+if(!P){X.restore();return}
+// particules
+for(const p of pt){X.globalAlpha=Math.max(0,p.l*2);X.fillStyle=p.c;X.fillRect(p.x-2,p.y-2,4,4)}
+X.globalAlpha=1;
+// ennemis
+for(const e of en){
+ if(e.w>0){X.strokeStyle=e.c;X.globalAlpha=.5;X.beginPath();X.arc(e.x,e.y,e.r+8*e.w,0,6.283);X.stroke();X.globalAlpha=1;continue}
+ X.fillStyle=e.hc>0?'#fff':e.c;X.shadowColor=e.c;X.shadowBlur=12;
+ X.beginPath();
+ if(e.k=='d'&&e.s==1){X.rect(e.x-e.r,e.y-e.r,e.r*2,e.r*2)}
+ else if(e.k=='b'){X.moveTo(e.x,e.y-e.r);X.lineTo(e.x+e.r,e.y+e.r);X.lineTo(e.x-e.r,e.y+e.r);X.closePath()}
+ else X.arc(e.x,e.y,e.r,0,6.283);
+ X.fill();X.shadowBlur=0;
+ if(e.mh>40){X.fillStyle='#000a';X.fillRect(e.x-e.r,e.y-e.r-8,e.r*2,4);X.fillStyle='#fff';X.fillRect(e.x-e.r,e.y-e.r-8,e.r*2*Math.max(0,e.hp/e.mh),4)}
+}
+// balles
+X.fillStyle='#ff8fa3';X.shadowColor='#ff5d73';X.shadowBlur=10;
+for(const b of eb){X.beginPath();X.arc(b.x,b.y,b.r,0,6.283);X.fill()}
+X.fillStyle='#fff6c9';X.shadowColor='#ffd166';
+for(const b of bl){X.beginPath();X.arc(b.x,b.y,P.br,0,6.283);X.fill()}
+// orbes
+X.fillStyle='#4dffd2';X.shadowColor='#4dffd2';
+for(let i=0;i<P.orbs;i++){const a=t*3+i*6.283/P.orbs;X.beginPath();X.arc(P.x+Math.cos(a)*48,P.y+Math.sin(a)*48,6,0,6.283);X.fill()}
+// joueur
+if(P.inv<=0||Math.floor(t*20)%2){
+ const g=X.createRadialGradient(P.x,P.y,2,P.x,P.y,70);g.addColorStop(0,'#ffd16666');g.addColorStop(1,'#ffd16600');
+ X.shadowBlur=0;X.fillStyle=g;X.beginPath();X.arc(P.x,P.y,70,0,6.283);X.fill();
+ X.fillStyle='#ffe8a3';X.shadowColor='#ffd166';X.shadowBlur=20;X.beginPath();X.arc(P.x,P.y,P.r,0,6.283);X.fill();
+}
+X.shadowBlur=0;X.restore();
+// HUD
+X.fillStyle='#000a';X.fillRect(12,12,204,16);
+X.fillStyle=P.hp/P.mh>.3?'#4dffd2':'#ff5d73';X.fillRect(14,14,200*Math.max(0,P.hp/P.mh),12);
+X.fillStyle='#dff3ff';X.font='13px system-ui';X.textAlign='left';
+X.fillText(`PV ${Math.ceil(Math.max(0,P.hp))}/${P.mh}`,14,44);
+X.fillStyle='#000a';X.fillRect(12,52,204,6);X.fillStyle='#ffd166';X.fillRect(12,52,204*Math.max(0,Math.min(1,1-P.dc/P.dcd)),6);
+X.textAlign='right';X.fillText(`Salle ${room}${room%5==0?' — BOSS':''}   ·   Essence +${ess}`,W-14,26);
+}
+
+function loop(now){
+const dt=Math.min(.05,(now-last)/1000);last=now;
+if(st=='play')update(dt);
+requestAnimationFrame(loop);draw();
+}
+menu();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
