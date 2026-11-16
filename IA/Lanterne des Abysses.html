@@ -14,6 +14,8 @@ body{display:flex;justify-content:center;align-items:center;min-height:100vh}
 canvas{width:100%;height:100%;display:block;background:#05070f;border-radius:8px;cursor:crosshair}
 #ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:rgba(3,6,14,.86);color:#dff3ff;border-radius:8px;padding:12px;overflow:auto}
 #ui.h{display:none}
+#ui.p{background:rgba(3,6,14,.72)}
+#pb{position:absolute;right:10px;bottom:10px;display:none;z-index:2;padding:5px 12px;font-size:13px;background:#10223acc}
 h1{margin:0;font-size:clamp(24px,5vw,44px);color:#4dffd2;text-shadow:0 0 18px #4dffd2}
 p{margin:0;font-size:clamp(11px,1.8vw,15px);opacity:.85;max-width:620px}
 button{font:inherit;color:#dff3ff;background:#10223a;border:1px solid #4dffd2;border-radius:8px;padding:8px 14px;cursor:pointer}
@@ -25,7 +27,7 @@ button:disabled{opacity:.4;cursor:default}
 </style>
 </head>
 <body>
-<div id="w"><canvas id="c" width="960" height="600"></canvas><div id="ui"></div></div>
+<div id="w"><canvas id="c" width="960" height="600"></canvas><div id="ui"></div><button id="pb" onclick="pause()" title="Pause (Échap ou P)">⏸ Pause</button><input type="file" id="lf" accept=".json,application/json" hidden></div>
 <script>
 const C=document.getElementById('c'),X=C.getContext('2d'),W=960,H=600,UI=document.getElementById('ui');
 const K={},M={x:W/2,y:H/2};
@@ -60,7 +62,7 @@ UI.innerHTML=`<h1>LANTERNE DES ABYSSES</h1><p>${msg||'Tu es une lanterne vivante
 <p><b>ZQSD / WASD</b> : se déplacer · <b>Souris</b> : viser (tir automatique) · <b>Espace</b> : esquive</p>
 <p>Essence : <b style="color:#ffd166">${S.ess}</b> · Record : salle <b>${S.best}</b></p>
 <div class="row">${SH.map(([k,n,d])=>`<button class="card" ${S.ess<cost(k)||S[k]>=10?'disabled':''} onclick="buy('${k}')"><b>${n} (niv. ${S[k]}/10)</b>${d}<span>${S[k]>=10?'MAX':cost(k)+' essence'}</span></button>`).join('')}</div>
-<button onclick="newRun()" style="font-size:1.2em;padding:10px 28px">▶ Descendre</button>`;
+<div class="row"><button onclick="newRun()" style="font-size:1.2em;padding:10px 28px">▶ Descendre</button><button onclick="document.getElementById('lf').click()" style="font-size:1.2em;padding:10px 20px">📂 Charger une partie</button></div>`;
 }
 const cost=k=>15*(S[k]+1);
 function buy(k){if(S.ess>=cost(k)&&S[k]<10){S.ess-=cost(k);S[k]++;save();menu()}}
@@ -119,10 +121,73 @@ if(room%5==0)P.hp=Math.min(P.mh,P.hp+P.mh*.3);
 nextRoom();
 }
 
+
+// ===== PAUSE · SAUVEGARDE · CHARGEMENT =====
+const PB=document.getElementById('pb'),LF=document.getElementById('lf');
+function pause(){
+if(st!='play')return;
+st='pause';UI.className='p';
+UI.innerHTML=`<h1>PAUSE</h1>
+<p>Salle <b>${room}</b>${room%5==0?' (BOSS)':''} · PV <b>${Math.ceil(P.hp)}/${P.mh}</b> · Essence de la descente <b style="color:#ffd166">+${ess}</b></p>
+<div class="row" style="flex-direction:column;align-items:stretch;min-width:min(280px,80%)">
+<button onclick="resume()" style="font-size:1.1em;padding:10px">▶ Reprendre</button>
+<button onclick="saveGame()" style="font-size:1.1em;padding:10px">💾 Sauvegarder la partie (fichier)</button>
+<button onclick="abandon(this)" style="border-color:#ff5d73">🚪 Abandonner la descente</button>
+</div>
+<p id="sv" style="min-height:1.3em;color:#4dffd2"></p>
+<p style="opacity:.6">Échap ou P : reprendre</p>`;
+}
+function resume(){
+if(st!='pause')return;
+st='play';UI.className='h';last=performance.now();
+}
+function abandon(b){
+if(!b.dataset.c){b.dataset.c=1;b.textContent='Confirmer l’abandon ?';return}
+die();
+}
+function saveGame(){
+const el=document.getElementById('sv');
+try{
+ const d={game:'lanterne-des-abysses',version:1,savedAt:new Date().toISOString(),meta:S,
+  run:{P,room,ess,t,qt,Q,en:en.filter(e=>!e.dead),eb,
+   bl:bl.map(b=>({x:b.x,y:b.y,vx:b.vx,vy:b.vy,l:b.l,p:b.p,b:b.b}))}};
+ const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+ const name=`lanterne-sauvegarde-salle${room}-${stamp}.json`;
+ const url=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download=name;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+ el.style.color='#4dffd2';el.textContent='✔ Sauvegarde téléchargée : '+name;
+}catch(err){el.style.color='#ff5d73';el.textContent='Échec de la sauvegarde.'}
+}
+LF.addEventListener('change',async e=>{
+const f=e.target.files&&e.target.files[0];e.target.value='';
+if(!f)return;
+try{
+ const d=JSON.parse(await f.text());
+ if(!d||d.game!='lanterne-des-abysses')throw new Error('Ce fichier n’est pas une sauvegarde de Lanterne des Abysses.');
+ const r=d.run;
+ if(r){
+  const ok=r.P&&['x','y','hp','mh','spd','dmg','rate'].every(k=>Number.isFinite(r.P[k]))
+   &&Number.isFinite(r.room)&&['en','eb','bl','Q'].every(k=>Array.isArray(r[k]));
+  if(!ok)throw new Error('Données de partie corrompues.');
+ }
+ if(d.meta){S=Object.assign({ess:0,hp:0,dmg:0,spd:0,best:0},d.meta);save()}
+ if(!r){menu('Progression chargée.');return}
+ P=r.P;room=r.room;ess=r.ess||0;t=r.t||0;qt=r.qt||0;Q=r.Q;en=r.en;eb=r.eb;
+ bl=r.bl.map(b=>({...b,h:new Set()}));pt=[];shake=0;
+ st='play';pause(); // on reprend en pause
+}catch(err){
+ menu(`<b style="color:#ff5d73">Chargement impossible</b><br>${err.message||'fichier invalide'}`);
+}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
+
 addEventListener('keydown',e=>{
 const k=e.key.toLowerCase();K[k]=true;
 if(k==' ')e.preventDefault();
 if(st=='pick'&&'123'.includes(k)&&k)take(+k-1);
+if(k=='escape'||k=='p'){if(st=='play')pause();else if(st=='pause')resume()}
 });
 addEventListener('keyup',e=>K[e.key.toLowerCase()]=false);
 C.addEventListener('mousemove',e=>{const r=C.getBoundingClientRect();M.x=(e.clientX-r.left)*W/r.width;M.y=(e.clientY-r.top)*H/r.height});
@@ -260,6 +325,7 @@ X.textAlign='right';X.fillText(`Salle ${room}${room%5==0?' — BOSS':''}   ·   
 function loop(now){
 const dt=Math.min(.05,(now-last)/1000);last=now;
 if(st=='play')update(dt);
+PB.style.display=st=='play'?'block':'none';
 requestAnimationFrame(loop);draw();
 }
 menu();

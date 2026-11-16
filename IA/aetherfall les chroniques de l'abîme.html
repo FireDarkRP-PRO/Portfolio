@@ -180,7 +180,12 @@
           </div>
         </div>
 
-        <nav class="glass-panel p-1.5 rounded-2xl flex gap-1">
+        <button id="btnLoadGame" title="Charger une partie depuis un fichier de sauvegarde" class="glass-panel gold-border px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold text-amber-300 hover:text-amber-200 transition cursor-pointer">
+            📂 Charger une partie
+          </button>
+          <input type="file" id="fileLoadGame" accept=".json,application/json" class="hidden">
+
+          <nav class="glass-panel p-1.5 rounded-2xl flex gap-1">
           <button data-hubtab="deploy" class="hub-tab-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 transition cursor-pointer">
             ⚔️ Expédition
           </button>
@@ -456,6 +461,10 @@
         <button id="btnResumeGame" class="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition cursor-pointer">
           Reprendre l'expédition
         </button>
+        <button id="btnSaveGame" class="w-full py-3 rounded-xl bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-bold transition cursor-pointer">
+          💾 Sauvegarder la partie (fichier)
+        </button>
+        <p id="saveStatus" class="text-xs font-mono-tech text-emerald-400 min-h-[1rem]"></p>
         <button id="btnAbandonRun" class="w-full py-3 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/40 text-rose-200 font-semibold transition cursor-pointer">
           Abandonner et retourner au Sanctuaire
         </button>
@@ -2871,6 +2880,7 @@
           <div class="flex justify-between"><span>Chance Critique :</span><span>${Math.round(p.critChance * 100)}%</span></div>
           <div class="flex justify-between"><span>Vitesse :</span><span>${Math.round(p.speed)}</span></div>
         `;
+        document.getElementById('saveStatus').textContent = '';
         document.getElementById('modalPause').classList.remove('hidden');
       }
 
@@ -3056,6 +3066,209 @@
         persistSave();
         renderHubUI();
         showToast(`Améliorations réinitialisées (+${refund} ✦ remboursés)`);
+      };
+
+
+      /* =========================================================================
+         15b. SAUVEGARDE / CHARGEMENT PAR FICHIER (JSON)
+         ========================================================================= */
+      const SAVE_FILE_ID = 'aetherfall-chroniques-abime';
+      const SAVE_FILE_VERSION = 1;
+
+      // Transforme la run en objet 100 % JSON (Map -> tableau, classe/reliques -> identifiants)
+      function serializeRun(run) {
+        const { classDef, relics, heal, ...pData } = run.player;
+        return {
+          player: { ...pData, classId: classDef.id, relicIds: relics.map(r => r.id) },
+          floor: {
+            floorNum: run.floor.floorNum,
+            currentKey: run.floor.currentKey,
+            rooms: Array.from(run.floor.rooms.entries())
+          },
+          gold: run.gold,
+          etherEarned: run.etherEarned,
+          xp: run.xp,
+          xpToNext: run.xpToNext,
+          level: run.level,
+          kills: run.kills,
+          damageDealt: run.damageDealt,
+          rerollCost: run.rerollCost,
+          portalExit: run.portalExit,
+          auraTickTimer: run.auraTickTimer
+        };
+      }
+
+      function buildSaveFile() {
+        return {
+          game: SAVE_FILE_ID,
+          version: SAVE_FILE_VERSION,
+          savedAt: new Date().toISOString(),
+          meta: saveData,
+          run: appState.run ? serializeRun(appState.run) : null
+        };
+      }
+
+      function downloadSaveFile() {
+        const data = buildSaveFile();
+        const floor = appState.run ? appState.run.floor.floorNum : 0;
+        const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `aetherfall-sauvegarde-strate${floor}-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        return a.download;
+      }
+
+      // Reconstruit une run jouable à partir d'une run sérialisée (lève une erreur si invalide)
+      function deserializeRun(r) {
+        if (!r || !r.player || !r.floor || !Array.isArray(r.floor.rooms)) {
+          throw new Error('Données de run manquantes ou corrompues.');
+        }
+        const pd = r.player;
+        const numbers = ['x', 'y', 'hp', 'maxHp', 'speed', 'damage', 'attackRate'];
+        if (!numbers.every(k => Number.isFinite(pd[k]))) {
+          throw new Error('Statistiques du joueur invalides.');
+        }
+        const rooms = new Map(r.floor.rooms);
+        if (!rooms.has(r.floor.currentKey)) {
+          throw new Error('Salle courante introuvable.');
+        }
+
+        const cls = CLASSES.find(c => c.id === pd.classId) || CLASSES[0];
+        const { classId, relicIds, mods, ...rest } = pd;
+        const player = {
+          ...rest,
+          classDef: cls,
+          relics: (relicIds || []).map(id => RELIC_POOL.find(x => x.id === id)).filter(Boolean),
+          mods: {
+            multishot: 0, lightning: 0, lifeOnKill: 0, orbitals: 0,
+            ricochet: 0, fireAura: 0, critExplosion: false, revive: 0,
+            ...(mods || {})
+          },
+          heal(amount) {
+            this.hp = Math.min(this.maxHp, this.hp + Math.round(amount));
+          }
+        };
+
+        return {
+          player,
+          floor: { floorNum: r.floor.floorNum || 1, rooms, currentKey: r.floor.currentKey },
+          projectiles: [],
+          enemyProjectiles: [],
+          particles: [],
+          floatingTexts: [],
+          aoeZones: [],
+          gold: r.gold || 0,
+          etherEarned: r.etherEarned || 0,
+          xp: r.xp || 0,
+          xpToNext: r.xpToNext || 100,
+          level: r.level || 1,
+          kills: r.kills || 0,
+          damageDealt: r.damageDealt || 0,
+          rerollCost: r.rerollCost || 25,
+          screenShake: 0,
+          portalExit: r.portalExit || null,
+          auraTickTimer: r.auraTickTimer || 0
+        };
+      }
+
+      async function loadSaveFromFile(file) {
+        try {
+          const data = JSON.parse(await file.text());
+          if (!data || data.game !== SAVE_FILE_ID) {
+            throw new Error('Ce fichier n’est pas une sauvegarde d’Aetherfall.');
+          }
+
+          // Valider la run AVANT de toucher à quoi que ce soit
+          const newRun = data.run ? deserializeRun(data.run) : null;
+
+          // Progression permanente (Éclats, améliorations, records)
+          if (data.meta) {
+            const base = JSON.parse(JSON.stringify(DEFAULT_SAVE));
+            saveData = {
+              ...base,
+              ...data.meta,
+              upgrades: { ...base.upgrades, ...(data.meta.upgrades || {}) },
+              stats: { ...base.stats, ...(data.meta.stats || {}) }
+            };
+            persistSave();
+          }
+
+          document.getElementById('modalGameOver').classList.add('hidden');
+          document.getElementById('modalLoot').classList.add('hidden');
+          document.getElementById('modalEvent').classList.add('hidden');
+          document.getElementById('modalPause').classList.add('hidden');
+          input.keys = {};
+          input.mouseDown = false;
+
+          if (!newRun) {
+            appState.run = null;
+            appState.mode = 'HUB';
+            document.getElementById('hudContainer').classList.add('hidden');
+            document.getElementById('btnPauseHud').classList.add('hidden');
+            document.getElementById('screenHub').classList.remove('hidden');
+            renderHubUI();
+            showToast('Progression chargée.');
+            return;
+          }
+
+          appState.run = newRun;
+          document.getElementById('screenHub').classList.add('hidden');
+          document.getElementById('hudContainer').classList.remove('hidden');
+          document.getElementById('btnPauseHud').classList.remove('hidden');
+
+          // Barre de boss si le Gardien est vivant dans la salle courante
+          const room = getCurrentRoom();
+          const boss = room && room.enemies.find(e => e.isBoss && e.hp > 0);
+          const bossWrap = document.getElementById('bossHudWrapper');
+          if (boss) {
+            bossWrap.classList.remove('hidden');
+            document.getElementById('bossNameHud').textContent = boss.name;
+          } else {
+            bossWrap.classList.add('hidden');
+          }
+
+          renderHudRelics();
+          updateHud();
+          renderMinimap();
+
+          // On reprend en pause : le joueur relance quand il est prêt
+          appState.mode = 'PLAYING';
+          pauseGame();
+          showToast(`Partie chargée (Strate ${newRun.floor.floorNum}). Reprenez quand vous êtes prêt.`);
+        } catch (err) {
+          console.error(err);
+          showToast('Chargement impossible : ' + (err.message || 'fichier invalide'));
+        }
+      }
+
+      document.getElementById('btnSaveGame').onclick = () => {
+        const status = document.getElementById('saveStatus');
+        try {
+          const name = downloadSaveFile();
+          status.className = 'text-xs font-mono-tech text-emerald-400 min-h-[1rem]';
+          status.textContent = `✔ Sauvegarde téléchargée : ${name}`;
+        } catch (err) {
+          console.error(err);
+          status.className = 'text-xs font-mono-tech text-rose-400 min-h-[1rem]';
+          status.textContent = 'Échec de la sauvegarde.';
+        }
+      };
+
+      const fileLoadInput = document.getElementById('fileLoadGame');
+      document.getElementById('btnLoadGame').onclick = () => {
+        sound.init();
+        fileLoadInput.click();
+      };
+      fileLoadInput.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) loadSaveFromFile(file);
+        e.target.value = '';
       };
 
       // Boutons globaux
