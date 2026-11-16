@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L’Observatoire oublié</title>
+<style>
+:root{--bg:#f1e8d6;--fg:#2a2118;--card:#fbf6ea;--line:#cdbb97;--acc:#9a5b13;--accfg:#fff;--ok:#2f7d4f;--ov:rgba(30,20,10,.55);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10162b;--fg:#e9e4d4;--card:#1a2240;--line:#34406b;--acc:#e0a94a;--accfg:#1a1408;--ok:#6fd08f;--ov:rgba(0,0,0,.65)}}
+:root[data-theme="dark"]{--bg:#10162b;--fg:#e9e4d4;--card:#1a2240;--line:#34406b;--acc:#e0a94a;--accfg:#1a1408;--ok:#6fd08f;--ov:rgba(0,0,0,.65)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font-family:Georgia,'Times New Roman',serif;display:flex;justify-content:center}
+#app{width:100%;max-width:760px;padding:12px;display:flex;flex-direction:column;gap:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:1.15rem;margin:0}
+#timer{font-variant-numeric:tabular-nums;opacity:.8}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--acc);color:var(--accfg);border:0;border-radius:8px;padding:9px 14px;font-weight:bold}
+.btn.alt{background:transparent;color:var(--fg);border:1px solid var(--line)}
+#scene{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.hs{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.9rem}
+.hs span{font-size:2rem}
+.hs:hover{border-color:var(--acc)}
+.hs.done{border-color:var(--ok)}
+.hs.done::after{content:'✔';color:var(--ok)}
+#msg{min-height:2.6em;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-style:italic}
+.box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.9rem}
+.box b{display:block;margin-bottom:4px}
+#inv{display:flex;gap:8px;flex-wrap:wrap;min-height:1.6em}
+#clues{margin:0;padding-left:18px}
+.ov{position:fixed;inset:0;background:var(--ov);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.ov.on{display:flex}
+.dlg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow:auto}
+.dlg h2{margin:0;font-size:1.1rem}
+.dlg p{margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+input[type=text]{font:inherit;font-size:1.4rem;text-align:center;letter-spacing:.3em;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%}
+.cr{width:64px;height:64px;border-radius:50%;border:3px solid var(--line);font-size:1.8rem;background:var(--bg)}
+.cr.lit{border-color:var(--acc);box-shadow:0 0 14px var(--acc)}
+#pstat{min-height:1.3em;font-size:.9rem;color:var(--ok)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🔭 L’Observatoire oublié</h1>
+    <span id="timer">00:00</span>
+    <button class="btn alt" id="pbtn" aria-label="Pause">⏸ Pause</button>
+  </header>
+  <div id="scene"></div>
+  <div id="msg"></div>
+  <div class="box"><b>Inventaire</b><div id="inv"></div></div>
+  <div class="box"><b>Journal d’indices</b><ul id="clues"></ul></div>
+</div>
+
+<div class="ov" id="modal"><div class="dlg" id="mbody"></div></div>
+
+<div class="ov" id="pause"><div class="dlg">
+  <h2>⏸ Pause</h2>
+  <button class="btn" id="b-resume">Reprendre</button>
+  <button class="btn" id="b-save">💾 Sauvegarder dans un fichier</button>
+  <button class="btn alt" id="b-load">📂 Charger une sauvegarde</button>
+  <button class="btn alt" id="b-hint">💡 Demander un indice</button>
+  <button class="btn alt" id="b-reset">↺ Recommencer</button>
+  <div id="pstat"></div>
+</div></div>
+
+<input type="file" id="file" accept=".json,application/json" hidden>
+
+<div class="ov on" id="start"><div class="dlg" style="text-align:center">
+  <h2>🔭 L’Observatoire oublié</h2>
+  <p>Vous êtes enfermé dans un vieil observatoire. Résolvez les énigmes pour ouvrir la porte.</p>
+  <p style="font-size:.9rem;opacity:.8">Le chrono démarre quand vous cliquez sur « Commencer ». Pause et sauvegarde : bouton ⏸ ou touche Échap.</p>
+  <button class="btn" id="s-new">▶ Commencer la partie</button>
+  <button class="btn alt" id="s-load">📂 Charger une sauvegarde</button>
+  <div id="sstat" style="min-height:1.3em;font-size:.9rem;color:var(--ok)"></div>
+</div></div>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+var fresh=function(){return {v:1,solved:{},inv:[],clues:[],t:0,hints:0,won:false}};
+var S=fresh(),paused=false,locked=false,started=false;
+
+var SPOTS=[
+ {id:'tableau',e:'🖼️',n:'Tableau'},
+ {id:'tiroir',e:'🗄️',n:'Bureau'},
+ {id:'etagere',e:'📚',n:'Étagère'},
+ {id:'coffre',e:'🧰',n:'Coffre'},
+ {id:'cristaux',e:'🔮',n:'Cristaux'},
+ {id:'telescope',e:'🔭',n:'Télescope'},
+ {id:'porte',e:'🚪',n:'Porte'}
+];
+
+function say(t){$('msg').textContent=t}
+function clue(t){if(S.clues.indexOf(t)<0)S.clues.push(t)}
+function give(i){if(S.inv.indexOf(i)<0)S.inv.push(i)}
+function take(i){S.inv=S.inv.filter(function(x){return x!==i})}
+function fmt(s){var m=Math.floor(s/60),r=s%60;return (m<10?'0':'')+m+':'+(r<10?'0':'')+r}
+
+function render(){
+  var sc=$('scene');sc.innerHTML='';
+  SPOTS.forEach(function(s){
+    var b=document.createElement('button');
+    b.className='hs'+(S.solved[s.id]?' done':'');
+    b.innerHTML='<span>'+s.e+'</span>'+s.n;
+    b.onclick=function(){if(started&&!paused&&!S.won)act(s.id)};
+    sc.appendChild(b);
+  });
+  $('inv').textContent=S.inv.length?S.inv.map(function(i){return {cle:'🗝️ Clé de cuivre',lentille:'🔍 Lentille'}[i]||i}).join('   '):'— vide —';
+  $('clues').innerHTML=S.clues.length?S.clues.map(function(c){return '<li>'+c+'</li>'}).join(''):'<li>Aucun indice pour l’instant.</li>';
+  $('timer').textContent=fmt(S.t);
+}
+
+function openModal(html){$('mbody').innerHTML=html;$('modal').classList.add('on')}
+function closeModal(){$('modal').classList.remove('on')}
+function closeBtn(){return '<button class="btn alt" onclick="closeModal()">Fermer</button>'}
+
+function ask(title,desc,ph,answer,ok){
+  openModal('<h2>'+title+'</h2><p>'+desc+'</p><input type="text" id="ans" maxlength="'+answer.length+'" placeholder="'+ph+'" autocomplete="off"><div id="ferr" style="min-height:1.2em"></div><div class="row"><button class="btn" id="go">Valider</button>'+closeBtn()+'</div>');
+  var inp=$('ans');inp.focus();
+  var check=function(){
+    if(inp.value.trim().toUpperCase()===answer){closeModal();ok()}
+    else{$('ferr').textContent='Rien ne se passe… ce n’est pas ça.';inp.value=''}
+  };
+  $('go').onclick=check;
+  inp.onkeydown=function(e){if(e.key==='Enter')check()};
+}
+
+function act(id){
+  switch(id){
+  case 'tableau':
+    clue('Tableau : 4 étoiles, 3 soleils, 1 lune. « Compte-les du plus nombreux au plus rare. »');
+    openModal('<h2>🖼️ Un vieux tableau</h2><p style="font-size:1.6rem;text-align:center">⭐⭐⭐⭐<br>☀️☀️☀️<br>🌙</p><p>Une plaque en laiton dit : « Compte-les du plus nombreux au plus rare. »</p>'+closeBtn());
+    say('Ce tableau cache sûrement un code.');render();break;
+  case 'tiroir':
+    if(S.solved.tiroir){say('Le tiroir est déjà ouvert et vide.');break}
+    ask('🗄️ Tiroir verrouillé','Un cadenas à trois chiffres.','000','431',function(){
+      S.solved.tiroir=true;give('cle');say('Le tiroir s’ouvre : une clé de cuivre !');render()});
+    break;
+  case 'etagere':
+    clue('Livre : « Le feu s’éveille avant l’eau, l’eau avant la terre, la terre avant le vent. »');
+    openModal('<h2>📚 Un livre usé</h2><p>Une page est cornée :</p><p><i>« Le feu s’éveille avant l’eau, l’eau avant la terre, la terre avant le vent. »</i></p>'+closeBtn());
+    say('Un ordre à respecter, mais pour quoi ?');render();break;
+  case 'coffre':
+    if(S.solved.coffre){say('Le coffre est vide.');break}
+    if(S.inv.indexOf('cle')<0){say('Le coffre est fermé à clé.');break}
+    take('cle');S.solved.coffre=true;give('lentille');say('Dans le coffre : une lentille de cristal. Elle irait bien sur un télescope…');render();break;
+  case 'cristaux':
+    if(S.solved.cristaux){say('Les cristaux brillent doucement.');break}
+    crystals();break;
+  case 'telescope':
+    if(S.solved.telescope){say('Le télescope est réglé sur les lettres TRSAE.');break}
+    if(S.inv.indexOf('lentille')<0){say('Il manque une lentille au télescope.');break}
+    if(!S.solved.cristaux){say('Trop sombre : on n’y voit rien. Il faut de la lumière.');break}
+    take('lentille');S.solved.telescope=true;
+    clue('Télescope : des lettres brillent au plafond — T, R, S, A, E.');
+    openModal('<h2>🔭 À travers la lentille</h2><p>Au plafond, des étoiles dessinent cinq lettres :</p><p style="font-size:1.8rem;text-align:center;letter-spacing:.4em">T R S A E</p><p>Quel est ce mot qui brille la nuit ?</p>'+closeBtn());
+    say('Des lettres mélangées…');render();break;
+  case 'porte':
+    ask('🚪 La grande porte','Un mot de cinq lettres est gravé dans le bois : « Dis ce qui brille la nuit. »','_____','ASTRE',function(){
+      S.won=true;render();
+      openModal('<h2>🎉 Vous êtes libre !</h2><p>La porte s’ouvre sur l’aube. Temps : <b>'+fmt(S.t)+'</b> — indices utilisés : <b>'+S.hints+'</b>.</p><div class="row"><button class="btn" onclick="toMenu()">Rejouer</button></div>')});
+    break;
+  }
+}
+
+function crystals(){
+  var order=['g','r','y','b'],right=['r','b','g','y'],icon={r:'🔴',b:'🔵',g:'🟢',y:'🟡'},seq=[];
+  openModal('<h2>🔮 Quatre cristaux</h2><p>Ils attendent d’être éveillés dans le bon ordre.</p><div class="row" id="crs"></div><div id="cmsg" style="min-height:1.2em;text-align:center"></div>'+closeBtn());
+  order.forEach(function(k){
+    var b=document.createElement('button');b.className='cr';b.textContent=icon[k];
+    b.onclick=function(){
+      if(b.classList.contains('lit'))return;
+      seq.push(k);b.classList.add('lit');
+      if(seq.length<4)return;
+      if(seq.join('')===right.join('')){
+        S.solved.cristaux=true;closeModal();say('Les cristaux s’embrasent : la salle est inondée de lumière.');render();
+      }else{
+        $('cmsg').textContent='Les cristaux s’éteignent… Recommence.';seq=[];
+        document.querySelectorAll('.cr').forEach(function(c){c.classList.remove('lit')});
+      }
+    };
+    $('crs').appendChild(b);
+  });
+}
+
+function hint(){
+  var h;
+  if(!S.solved.tiroir)h='Le tableau explique comment lire les symboles, et le bureau attend un code.';
+  else if(!S.solved.coffre)h='Tu as une clé : trouve la serrure.';
+  else if(!S.solved.cristaux)h='L’étagère dit dans quel ordre éveiller les quatre éléments.';
+  else if(!S.solved.telescope)h='Le télescope a besoin d’une lentille et de lumière.';
+  else h='Remets les lettres dans l’ordre : qu’est-ce qui brille la nuit ?';
+  S.hints++;return h;
+}
+
+function setPause(p){
+  paused=p;$('pause').classList.toggle('on',p);
+  if(p){closeModal();$('pstat').textContent=''}
+}
+
+function save(){
+  var data=JSON.stringify({game:'observatoire',v:1,saved:new Date().toISOString(),state:S},null,2);
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  a.download='observatoire-sauvegarde.json';
+  document.body.appendChild(a);a.click();a.remove();
+  $('pstat').textContent='Sauvegarde téléchargée ✔';
+}
+
+function load(file){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result),s=d.state;
+      if(d.game!=='observatoire'||!s||typeof s.t!=='number'||!Array.isArray(s.inv)||!Array.isArray(s.clues)||typeof s.solved!=='object')throw 0;
+      S=Object.assign(fresh(),s);
+      if(!started)startGame();
+      render();
+      $('pstat').textContent='Partie chargée ✔ (temps '+fmt(S.t)+')';say('Partie restaurée.');
+    }catch(e){var st=started?$('pstat'):$('sstat');st.textContent='Fichier invalide.';st.style.color='#c0392b'}
+  };
+  r.readAsText(file);
+}
+
+$('pbtn').onclick=function(){if(started)setPause(true)};
+$('b-resume').onclick=function(){setPause(false)};
+$('b-save').onclick=save;
+$('b-load').onclick=function(){$('file').click()};
+$('file').onchange=function(e){if(e.target.files[0])load(e.target.files[0]);e.target.value=''};
+$('b-hint').onclick=function(){$('pstat').style.color='';$('pstat').textContent='💡 '+hint()};
+$('b-reset').onclick=function(){if(confirm('Effacer la progression en cours ?')){S=fresh();render();setPause(false);say('Nouvelle partie. Explore la pièce !')}};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&started)setPause(!paused)});
+setInterval(function(){if(started&&!paused&&!S.won){S.t++;$('timer').textContent=fmt(S.t)}},1000);
+
+function startGame(){
+  started=true;$('start').classList.remove('on');
+  say('Vous vous réveillez dans un observatoire abandonné. La porte est verrouillée. Explorez !');render();
+}
+function toMenu(){
+  S=fresh();started=false;closeModal();render();
+  $('sstat').textContent='';$('start').classList.add('on');
+}
+$('s-new').onclick=function(){S=fresh();startGame()};
+$('s-load').onclick=function(){$('sstat').style.color='';$('file').click()};
+say('Lancez une partie pour commencer.');
+render();
+</script>
+</body>
+</html>
